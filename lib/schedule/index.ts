@@ -19,3 +19,16 @@ export {
 } from "./timetable";
 
 export { generateTimetableIcs, getIcsFilename } from "./ics";
+
+export type {
+  NextClassResult,
+  NextClassStatus,
+  ResolvedClassTiming,
+} from "./next-class";
+
+export {
+  SCHEDULE_TIMEZONE,
+  getCampusNow,
+  getNextClass,
+  getTodayClasses,
+} from "./next-class";

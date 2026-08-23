@@ -136,7 +136,14 @@ export async function POST(request: Request) {
     revalidatePath("/");
 
     return NextResponse.json({ success: true, fileName: safeName, kind });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/already exists|cannot be overwritten/i.test(message)) {
+      return NextResponse.json(
+        { error: "A file with this name already exists." },
+        { status: 409 }
+      );
+    }
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }
 }

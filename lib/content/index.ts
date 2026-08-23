@@ -1,4 +1,4 @@
-import type { ContentStats, ContentTree, Course, Document, Semester } from "./types";
+import type { ContentStats, Course, Document, Semester } from "./types";
 import { getContentTree, getCourse } from "./lookup";
 
 export type {
@@ -23,6 +23,10 @@ export {
   isSafeContentSlug,
 } from "./blob";
 export { getContentTree, getCourse, getSemester } from "./lookup";
+export {
+  matchScheduleSubjectToCourse,
+  type MatchedCourse,
+} from "./match-course";
 
 export async function getContentStats(): Promise<ContentStats> {
   const tree = await getContentTree();
