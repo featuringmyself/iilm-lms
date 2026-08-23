@@ -122,14 +122,23 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                         {isCourseActive && course.documents.length > 0 ? (
                           <SidebarMenuSub className="mx-0 ml-3.5 border-l border-sidebar-border px-0 pl-2.5">
                             {course.documents.map((doc) => {
-                              const docHref = `/${semester.slug}/${course.slug}/${doc.slug}`;
+                              const isPdf = doc.extension === "pdf";
+                              const docHref = isPdf
+                                ? doc.publicPath
+                                : `/${semester.slug}/${course.slug}/${doc.slug}`;
                               return (
                                 <SidebarMenuSubItem key={doc.slug}>
                                   <SidebarMenuSubButton
                                     size="sm"
-                                    isActive={pathname === docHref}
+                                    isActive={!isPdf && pathname === docHref}
                                     className="h-7 text-[12px] text-muted-foreground transition-colors duration-150 data-active:font-medium data-active:text-sidebar-accent-foreground"
-                                    render={<Link href={docHref} />}
+                                    render={
+                                      isPdf ? (
+                                        <a href={docHref} />
+                                      ) : (
+                                        <Link href={docHref} />
+                                      )
+                                    }
                                   >
                                     <span className="truncate">{doc.name}</span>
                                   </SidebarMenuSubButton>

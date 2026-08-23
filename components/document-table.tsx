@@ -67,7 +67,12 @@ export function DocumentTable({ course, semesterSlug }: DocumentTableProps) {
         <TableBody>
           {course.documents.map((doc) => {
             const badge = getFileTypeBadge(doc.extension);
-            const viewHref = `/${semesterSlug}/${course.slug}/${doc.slug}`;
+            const isPdf = doc.extension === "pdf";
+            // PDFs open via static publicPath so the browser native viewer
+            // handles them; DOCX/PPTX stay on the in-app viewer route.
+            const viewHref = isPdf
+              ? doc.publicPath
+              : `/${semesterSlug}/${course.slug}/${doc.slug}`;
 
             return (
               <TableRow
@@ -80,13 +85,23 @@ export function DocumentTable({ course, semesterSlug }: DocumentTableProps) {
                   </div>
                 </TableCell>
                 <TableCell className="max-w-[240px] px-3 py-2.5 sm:max-w-md">
-                  <Link
-                    href={viewHref}
-                    className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary sm:line-clamp-1"
-                    title={doc.name}
-                  >
-                    {doc.name}
-                  </Link>
+                  {isPdf ? (
+                    <a
+                      href={viewHref}
+                      className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary sm:line-clamp-1"
+                      title={doc.name}
+                    >
+                      {doc.name}
+                    </a>
+                  ) : (
+                    <Link
+                      href={viewHref}
+                      className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary sm:line-clamp-1"
+                      title={doc.name}
+                    >
+                      {doc.name}
+                    </Link>
+                  )}
                 </TableCell>
                 <TableCell className="hidden px-3 py-2.5 sm:table-cell">
                   <span
@@ -108,7 +123,13 @@ export function DocumentTable({ course, semesterSlug }: DocumentTableProps) {
                       size="icon-sm"
                       className="size-7 text-muted-foreground hover:text-foreground"
                       nativeButton={false}
-                      render={<Link href={viewHref} />}
+                      render={
+                        isPdf ? (
+                          <a href={viewHref} />
+                        ) : (
+                          <Link href={viewHref} />
+                        )
+                      }
                     >
                       <Eye className="size-3.5" />
                       <span className="sr-only">View</span>
@@ -128,7 +149,13 @@ export function DocumentTable({ course, semesterSlug }: DocumentTableProps) {
                       size="xs"
                       className="ml-1 hidden sm:inline-flex"
                       nativeButton={false}
-                      render={<Link href={viewHref} />}
+                      render={
+                        isPdf ? (
+                          <a href={viewHref} />
+                        ) : (
+                          <Link href={viewHref} />
+                        )
+                      }
                     >
                       Open
                     </Button>

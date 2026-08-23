@@ -1,7 +1,6 @@
 import type { Document } from "@/lib/content";
 
 import { DocxViewer } from "./docx-viewer";
-import { PdfViewer } from "./pdf-viewer";
 import { PptxViewer } from "./pptx-viewer";
 
 interface DocumentViewerProps {
@@ -10,8 +9,6 @@ interface DocumentViewerProps {
 
 export function DocumentViewer({ document }: DocumentViewerProps) {
   switch (document.extension) {
-    case "pdf":
-      return <PdfViewer publicPath={document.publicPath} />;
     case "docx":
       return <DocxViewer publicPath={document.publicPath} />;
     case "pptx":

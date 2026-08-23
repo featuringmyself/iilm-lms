@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { DocumentViewer } from "@/components/document-viewer/document-viewer";
 import { ViewerToolbar } from "@/components/document-viewer/viewer-toolbar";
@@ -29,9 +29,9 @@ export default async function DocumentPage({
 
   if (!semester || !course || !document) notFound();
 
-  // PDF: zero chrome — full viewport only (no sidebar/header/toolbar)
+  // PDFs: send to static file so the browser native viewer opens full quality
   if (document.extension === "pdf") {
-    return <DocumentViewer document={document} />;
+    redirect(document.publicPath);
   }
 
   // DOCX / PPTX: toolbar with breadcrumb + download
