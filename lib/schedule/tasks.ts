@@ -23,7 +23,7 @@ export const scheduleTasks: ScheduleTask[] = [
     title: "7 Cs & 40-second self-introduction",
     description:
       "Prepare the 7 Cs of communication and record/deliver an introduction about yourself lasting at least 40 seconds.",
-    dueAt: "2026-08-29T23:59:00+05:30",
+    dueAt: "2026-08-24T14:30:00+05:30",
     courseCode: "26CCSS105",
     courseName: "Professional Communication for Engineers",
   },
