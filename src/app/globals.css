@@ -181,7 +181,6 @@
 @layer components {
   .prose-content {
     line-height: 1.7;
-    max-width: 720px;
   }
 
   .prose-content h1,

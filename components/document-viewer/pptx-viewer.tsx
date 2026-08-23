@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -10,12 +10,32 @@ interface PptxViewerProps {
 }
 
 export function PptxViewer({ publicPath }: PptxViewerProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const bufferRef = useRef<ArrayBuffer | null>(null);
+  const readyRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getWidth = useCallback(() => {
+    const el = wrapperRef.current;
+    if (!el) return 320;
+    return Math.max(el.clientWidth, 320);
+  }, []);
+
+  const renderPreview = useCallback(async (arrayBuffer: ArrayBuffer, width: number) => {
+    if (!containerRef.current) return;
+
+    containerRef.current.innerHTML = "";
+    const { init } = await import("pptx-preview");
+    const previewer = init(containerRef.current, { width });
+    await previewer.preview(arrayBuffer);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    bufferRef.current = null;
+    readyRef.current = false;
 
     async function load() {
       setLoading(true);
@@ -25,18 +45,14 @@ export function PptxViewer({ publicPath }: PptxViewerProps) {
         const response = await fetch(publicPath);
         if (!response.ok) throw new Error("Failed to load presentation");
         const arrayBuffer = await response.arrayBuffer();
-
-        const { init } = await import("pptx-preview");
         if (cancelled || !containerRef.current) return;
 
-        containerRef.current.innerHTML = "";
-        const width = Math.min(
-          Math.max(containerRef.current.clientWidth - 32, 320),
-          960
-        );
-        const previewer = init(containerRef.current, { width });
-        await previewer.preview(arrayBuffer);
-        if (!cancelled) setError(null);
+        bufferRef.current = arrayBuffer;
+        await renderPreview(arrayBuffer, getWidth());
+        if (!cancelled) {
+          readyRef.current = true;
+          setError(null);
+        }
       } catch {
         if (!cancelled) {
           setError("Unable to preview this presentation.");
@@ -49,14 +65,38 @@ export function PptxViewer({ publicPath }: PptxViewerProps) {
     load();
     return () => {
       cancelled = true;
+      readyRef.current = false;
     };
-  }, [publicPath]);
+  }, [publicPath, getWidth, renderPreview]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const observer = new ResizeObserver(() => {
+      if (!readyRef.current || !bufferRef.current) return;
+
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (readyRef.current && bufferRef.current) {
+          void renderPreview(bufferRef.current, getWidth());
+        }
+      }, 150);
+    });
+
+    observer.observe(wrapper);
+    return () => {
+      clearTimeout(resizeTimer);
+      observer.disconnect();
+    };
+  }, [getWidth, renderPreview]);
 
   return (
-    <div className="relative flex min-h-[50vh] justify-center p-6">
+    <div ref={wrapperRef} className="relative w-full p-6">
       {loading ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center gap-4 bg-muted p-8">
-          <Skeleton className="aspect-video w-full max-w-4xl" />
+          <Skeleton className="aspect-video w-full" />
           <Skeleton className="h-4 w-48" />
         </div>
       ) : null}
@@ -72,10 +112,7 @@ export function PptxViewer({ publicPath }: PptxViewerProps) {
 
       <div
         ref={containerRef}
-        className={cn(
-          "w-full max-w-5xl",
-          (loading || error) && "invisible absolute"
-        )}
+        className={cn("w-full", (loading || error) && "invisible absolute")}
       />
     </div>
   );

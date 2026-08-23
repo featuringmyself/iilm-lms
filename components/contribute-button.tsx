@@ -35,6 +35,7 @@ export function ContributeButton() {
                 variant="outline"
                 size="icon-sm"
                 className="size-8 sm:hidden"
+                nativeButton={false}
                 render={
                   <a
                     href={GITHUB_URL}
@@ -56,6 +57,7 @@ export function ContributeButton() {
         variant="outline"
         size="sm"
         className="hidden h-8 sm:inline-flex"
+        nativeButton={false}
         render={
           <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" />
         }

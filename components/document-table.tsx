@@ -107,6 +107,7 @@ export function DocumentTable({ course, semesterSlug }: DocumentTableProps) {
                       variant="ghost"
                       size="icon-sm"
                       className="size-7 text-muted-foreground hover:text-foreground"
+                      nativeButton={false}
                       render={<Link href={viewHref} />}
                     >
                       <Eye className="size-3.5" />
@@ -116,17 +117,17 @@ export function DocumentTable({ course, semesterSlug }: DocumentTableProps) {
                       variant="ghost"
                       size="icon-sm"
                       className="size-7 text-muted-foreground hover:text-foreground"
-                      render={
-                        <a href={doc.publicPath} download={doc.fileName}>
-                          <Download className="size-3.5" />
-                          <span className="sr-only">Download</span>
-                        </a>
-                      }
-                    />
+                      nativeButton={false}
+                      render={<a href={doc.publicPath} download={doc.fileName} />}
+                    >
+                      <Download className="size-3.5" />
+                      <span className="sr-only">Download</span>
+                    </Button>
                     <Button
                       variant="outline"
                       size="xs"
                       className="ml-1 hidden sm:inline-flex"
+                      nativeButton={false}
                       render={<Link href={viewHref} />}
                     >
                       Open

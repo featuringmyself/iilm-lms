@@ -19,6 +19,7 @@ export default function SchedulePage() {
             <Button
               variant="outline"
               size="sm"
+              nativeButton={false}
               render={
                 <a
                   href={EDUPAGE_TIMETABLE_URL}

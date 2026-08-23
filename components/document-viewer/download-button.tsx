@@ -12,12 +12,11 @@ export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
     <Button
       variant="outline"
       size="sm"
-      render={
-        <a href={publicPath} download={fileName}>
-          <Download />
-          Download
-        </a>
-      }
-    />
+      nativeButton={false}
+      render={<a href={publicPath} download={fileName} />}
+    >
+      <Download />
+      Download
+    </Button>
   );
 }
