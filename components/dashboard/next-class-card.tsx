@@ -9,7 +9,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import type { MatchedCourse } from "@/lib/content";
-import type { NextClassResult } from "@/lib/schedule";
+import type { NextClassResult, ResolvedClassTiming } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
 
 interface NextClassCardProps {
@@ -20,34 +20,62 @@ interface NextClassCardProps {
 function statusLabel(next: NextClassResult): string {
   switch (next.status) {
     case "in_progress":
-      return "Happening now";
+      return "In progress";
     case "upcoming":
-      return "Up next";
-    case "done":
-      return "Done for today";
-    case "weekend":
-      return "Weekend";
+      return "Next up";
+    case "later":
+      return next.whenLabel ?? "Up next";
     case "no_classes":
       return "No classes";
   }
 }
 
-function emptyMessage(next: NextClassResult): string {
-  switch (next.status) {
-    case "done":
-      return "No more classes today. Catch up on materials or check tomorrow's schedule.";
-    case "weekend":
-      return "No classes today. Browse materials or peek at next week’s timetable.";
-    case "no_classes":
-      return "Nothing on the timetable for today.";
-    default:
-      return "";
-  }
+function ClassMeta({ item }: { item: ResolvedClassTiming }) {
+  return (
+    <dl className="grid gap-2 text-[13px] text-muted-foreground sm:grid-cols-3">
+      <div className="flex items-start gap-2">
+        <Clock
+          className="mt-0.5 size-3.5 shrink-0 text-foreground/60"
+          strokeWidth={1.75}
+        />
+        <div>
+          <dt className="sr-only">Time</dt>
+          <dd className="font-mono tabular-nums text-foreground">
+            {item.label}
+          </dd>
+        </div>
+      </div>
+      <div className="flex items-start gap-2">
+        <MapPin
+          className="mt-0.5 size-3.5 shrink-0 text-foreground/60"
+          strokeWidth={1.75}
+        />
+        <div>
+          <dt className="sr-only">Room</dt>
+          <dd className="text-foreground">{item.location}</dd>
+        </div>
+      </div>
+      <div className="flex items-start gap-2">
+        <UserRound
+          className="mt-0.5 size-3.5 shrink-0 text-foreground/60"
+          strokeWidth={1.75}
+        />
+        <div>
+          <dt className="sr-only">Teacher</dt>
+          <dd className="text-foreground">{item.entry.teachers.join(", ")}</dd>
+        </div>
+      </div>
+    </dl>
+  );
 }
 
 export function NextClassCard({ next, matched }: NextClassCardProps) {
   const href = matched?.href ?? "/schedule";
   const linkLabel = matched ? "Open course" : "View schedule";
+  const dayHint =
+    next.status === "later" && next.whenLabel
+      ? next.whenLabel
+      : next.weekdayLabel;
 
   return (
     <section
@@ -63,7 +91,7 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
           </span>
           <span className="text-border">·</span>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            {next.weekdayLabel}
+            {dayHint}
             <span className="mx-1.5 text-border">·</span>
             {next.nowHm}
           </span>
@@ -95,47 +123,28 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
               </h2>
             </div>
 
-            <dl className="grid gap-2 text-[13px] text-muted-foreground sm:grid-cols-3">
-              <div className="flex items-start gap-2">
-                <Clock
-                  className="mt-0.5 size-3.5 shrink-0 text-foreground/60"
-                  strokeWidth={1.75}
-                />
-                <div>
-                  <dt className="sr-only">Time</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {next.classItem.label}
-                  </dd>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin
-                  className="mt-0.5 size-3.5 shrink-0 text-foreground/60"
-                  strokeWidth={1.75}
-                />
-                <div>
-                  <dt className="sr-only">Room</dt>
-                  <dd className="text-foreground">{next.classItem.location}</dd>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 sm:col-span-1">
-                <UserRound
-                  className="mt-0.5 size-3.5 shrink-0 text-foreground/60"
-                  strokeWidth={1.75}
-                />
-                <div>
-                  <dt className="sr-only">Teacher</dt>
-                  <dd className="text-foreground">
-                    {next.classItem.entry.teachers.join(", ")}
-                  </dd>
-                </div>
-              </div>
-            </dl>
+            <ClassMeta item={next.classItem} />
 
-            {next.remainingToday.length > 0 ? (
+            {next.status === "in_progress" && next.upNext ? (
+              <div className="border-t border-border pt-3">
+                <p className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Up next
+                </p>
+                <p className="text-[13px] text-foreground">
+                  <span className="font-medium">{next.upNext.entry.name}</span>
+                  <span className="mx-1.5 text-border">·</span>
+                  <span className="font-mono tabular-nums text-muted-foreground">
+                    {next.upNext.label}
+                  </span>
+                </p>
+              </div>
+            ) : null}
+
+            {next.status !== "in_progress" && next.remainingToday.length > 0 ? (
               <p className="text-[12px] text-muted-foreground">
                 {next.remainingToday.length} more class
                 {next.remainingToday.length === 1 ? "" : "es"} after this
+                {next.status === "later" ? ` on ${next.weekdayLabel}` : ""}
               </p>
             ) : null}
           </div>
@@ -161,7 +170,7 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
               />
             </div>
             <p className="max-w-xl text-[13px] leading-relaxed text-muted-foreground">
-              {emptyMessage(next)}
+              Nothing on the timetable for this week.
             </p>
           </div>
           <Button

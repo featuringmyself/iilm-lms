@@ -32,3 +32,21 @@ export {
   getNextClass,
   getTodayClasses,
 } from "./next-class";
+
+export type {
+  ScheduleTask,
+  ScheduleTaskType,
+  TaskUrgency,
+} from "./tasks";
+
+export {
+  campusDateKey,
+  formatDueRelative,
+  formatTaskDueDate,
+  getDueSoon,
+  getHomework,
+  getReminders,
+  getTaskUrgency,
+  isTaskOverdue,
+  scheduleTasks,
+} from "./tasks";

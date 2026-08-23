@@ -1,9 +1,4 @@
-import {
-  classEntries,
-  getEntriesForDay,
-  resolveLocation,
-  timeSlots,
-} from "./timetable";
+import { getEntriesForDay, resolveLocation, timeSlots } from "./timetable";
 import type { ClassEntry, Weekday } from "./types";
 
 const JS_DAY_TO_WEEKDAY: Record<number, Weekday | null> = {
@@ -31,8 +26,7 @@ export const SCHEDULE_TIMEZONE = "Asia/Kolkata";
 export type NextClassStatus =
   | "in_progress"
   | "upcoming"
-  | "done"
-  | "weekend"
+  | "later"
   | "no_classes";
 
 export interface ResolvedClassTiming {
@@ -45,13 +39,23 @@ export interface ResolvedClassTiming {
 
 export interface NextClassResult {
   status: NextClassStatus;
-  /** Local calendar weekday id, or null on Sunday */
+  /**
+   * Weekday of the highlighted class (or today's weekday when nothing is found).
+   * Null only on Sunday when the week has no classes at all.
+   */
   weekday: Weekday | null;
   weekdayLabel: string;
   /** HH:mm in campus timezone */
   nowHm: string;
+  /**
+   * Relative day label for a future-day class: "Tomorrow" or e.g. "Monday".
+   * Null when the class is today (in progress / upcoming).
+   */
+  whenLabel: string | null;
   classItem: ResolvedClassTiming | null;
-  /** Remaining classes after the highlighted one (same day) */
+  /** When in progress: the following class (same day, else next weekday). */
+  upNext: ResolvedClassTiming | null;
+  /** Remaining classes after the highlighted one on that class's day */
   remainingToday: ResolvedClassTiming[];
 }
 
@@ -144,76 +148,122 @@ export function getTodayClasses(
 }
 
 /**
- * Picks the class a student cares about right now:
- * - currently in progress, else
- * - next not-yet-started today, else
- * - done / weekend / empty day
+ * Walk forward from `fromJsDay` (exclusive) up to 7 days and return the first
+ * weekday that has at least one class. Skips Sunday and empty days (e.g. Saturday).
+ */
+function findNextDayWithClasses(fromJsDay: number): {
+  weekday: Weekday;
+  daysAhead: number;
+  classes: ResolvedClassTiming[];
+} | null {
+  for (let offset = 1; offset <= 7; offset++) {
+    const jsDay = (fromJsDay + offset) % 7;
+    const weekday = JS_DAY_TO_WEEKDAY[jsDay];
+    if (!weekday) continue;
+    const classes = getTodayClasses(weekday);
+    if (classes.length > 0) {
+      return { weekday, daysAhead: offset, classes };
+    }
+  }
+  return null;
+}
+
+function whenLabelForOffset(daysAhead: number, weekday: Weekday): string {
+  return daysAhead === 1 ? "Tomorrow" : WEEKDAY_LABEL[weekday];
+}
+
+function laterResult(
+  nowHm: string,
+  found: {
+    weekday: Weekday;
+    daysAhead: number;
+    classes: ResolvedClassTiming[];
+  }
+): NextClassResult {
+  const first = found.classes[0];
+  return {
+    status: "later",
+    weekday: found.weekday,
+    weekdayLabel: WEEKDAY_LABEL[found.weekday],
+    nowHm,
+    whenLabel: whenLabelForOffset(found.daysAhead, found.weekday),
+    classItem: first,
+    upNext: null,
+    remainingToday: found.classes.slice(1),
+  };
+}
+
+/**
+ * Picks the class a student cares about right now (Asia/Kolkata):
+ * 1. currently in progress → status in_progress (+ upNext if any)
+ * 2. next not-yet-started today → status upcoming
+ * 3. else first class on the next weekday that has classes
+ *    (tomorrow, or e.g. Monday if Sat/Sun are empty)
  */
 export function getNextClass(date = new Date()): NextClassResult {
-  const { weekday, weekdayLabel, hours, minutes, nowHm } = getCampusNow(date);
+  const { weekday, weekdayLabel, hours, minutes, nowHm, jsDay } =
+    getCampusNow(date);
   const nowMinutes = hours * 60 + minutes;
-
-  if (!weekday) {
-    return {
-      status: "weekend",
-      weekday: null,
-      weekdayLabel,
-      nowHm,
-      classItem: null,
-      remainingToday: [],
-    };
-  }
 
   const today = getTodayClasses(weekday, date);
 
-  if (today.length === 0) {
-    // Saturday (or any weekday with no entries)
-    const hasAnyForWeekday = classEntries.some((e) => e.day === weekday);
-    return {
-      status: hasAnyForWeekday ? "done" : weekday === "saturday" ? "weekend" : "no_classes",
-      weekday,
-      weekdayLabel,
-      nowHm,
-      classItem: null,
-      remainingToday: [],
-    };
+  if (today.length > 0) {
+    const inProgress = today.find(
+      (c) =>
+        nowMinutes >= hmToMinutes(c.start) && nowMinutes < hmToMinutes(c.end)
+    );
+    if (inProgress) {
+      const idx = today.indexOf(inProgress);
+      const remaining = today.slice(idx + 1);
+      let upNext: ResolvedClassTiming | null = remaining[0] ?? null;
+
+      if (!upNext) {
+        const nextDay = findNextDayWithClasses(jsDay);
+        upNext = nextDay?.classes[0] ?? null;
+      }
+
+      return {
+        status: "in_progress",
+        weekday,
+        weekdayLabel,
+        nowHm,
+        whenLabel: null,
+        classItem: inProgress,
+        upNext,
+        remainingToday: remaining,
+      };
+    }
+
+    const upcoming = today.find((c) => nowMinutes < hmToMinutes(c.start));
+    if (upcoming) {
+      const idx = today.indexOf(upcoming);
+      return {
+        status: "upcoming",
+        weekday,
+        weekdayLabel,
+        nowHm,
+        whenLabel: null,
+        classItem: upcoming,
+        upNext: null,
+        remainingToday: today.slice(idx + 1),
+      };
+    }
   }
 
-  const inProgress = today.find(
-    (c) =>
-      nowMinutes >= hmToMinutes(c.start) && nowMinutes < hmToMinutes(c.end)
-  );
-  if (inProgress) {
-    const idx = today.indexOf(inProgress);
-    return {
-      status: "in_progress",
-      weekday,
-      weekdayLabel,
-      nowHm,
-      classItem: inProgress,
-      remainingToday: today.slice(idx + 1),
-    };
-  }
-
-  const upcoming = today.find((c) => nowMinutes < hmToMinutes(c.start));
-  if (upcoming) {
-    const idx = today.indexOf(upcoming);
-    return {
-      status: "upcoming",
-      weekday,
-      weekdayLabel,
-      nowHm,
-      classItem: upcoming,
-      remainingToday: today.slice(idx + 1),
-    };
+  // No more classes today (or Sunday / empty day) → look ahead
+  const nextDay = findNextDayWithClasses(jsDay);
+  if (nextDay) {
+    return laterResult(nowHm, nextDay);
   }
 
   return {
-    status: "done",
+    status: "no_classes",
     weekday,
     weekdayLabel,
     nowHm,
+    whenLabel: null,
     classItem: null,
+    upNext: null,
     remainingToday: [],
   };
 }

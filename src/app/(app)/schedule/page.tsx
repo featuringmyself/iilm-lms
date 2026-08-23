@@ -2,13 +2,16 @@ import { ExternalLink, MapPin } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { AddToCalendarButton } from "@/components/schedule/add-to-calendar-button";
-import { TimetableGrid } from "@/components/schedule/timetable-grid";
+import { ScheduleView } from "@/components/schedule/schedule-view";
 import { Button } from "@/components/ui/button";
-import { timetableMeta } from "@/lib/schedule";
+import { getHomework, getReminders, timetableMeta } from "@/lib/schedule";
 
 const EDUPAGE_TIMETABLE_URL = "https://iilmgn.edupage.org/timetable/";
 
 export default function SchedulePage() {
+  const homework = getHomework();
+  const reminders = getReminders();
+
   return (
     <>
       <PageHeader
@@ -56,7 +59,7 @@ export default function SchedulePage() {
         </p>
       </div>
 
-      <TimetableGrid />
+      <ScheduleView homework={homework} reminders={reminders} />
     </>
   );
 }

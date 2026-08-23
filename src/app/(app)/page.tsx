@@ -1,4 +1,5 @@
 import { CourseCard } from "@/components/course-card";
+import { DueSoon } from "@/components/dashboard/due-soon";
 import { NextClassCard } from "@/components/dashboard/next-class-card";
 import { QuickLinks } from "@/components/dashboard/quick-links";
 import {
@@ -69,6 +70,8 @@ export default async function DashboardPage() {
 
       <div className="mb-6 space-y-6 sm:mb-8 sm:space-y-8">
         <NextClassCard next={next} matched={matched} />
+
+        <DueSoon />
 
         <SlimStats
           stats={{

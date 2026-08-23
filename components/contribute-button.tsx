@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderGit2 } from "lucide-react";
+import { Github } from "lucide-react-legacy";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +34,7 @@ export function ContributeButton() {
               />
             }
           >
-            <FolderGit2 className="size-4" strokeWidth={1.75} />
+            <Github className="size-4" strokeWidth={1.75} />
             <span className="sr-only">Contribute</span>
           </TooltipTrigger>
           <TooltipContent>Contribute</TooltipContent>
@@ -50,7 +50,7 @@ export function ContributeButton() {
           <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" />
         }
       >
-        <FolderGit2 className="size-4" strokeWidth={1.75} />
+        <Github className="size-4" strokeWidth={1.75} />
         Contribute
       </Button>
     </>
