@@ -11,6 +11,8 @@ import {
   slugify,
 } from "./slug";
 
+const NOTES_DIR_NAME = "notes";
+
 function toFileExtension(ext: string): FileExtension {
   if (ext === "pdf" || ext === "pptx" || ext === "docx") return ext;
   return "other";
@@ -34,9 +36,13 @@ function uniqueSlug(base: string, existing: Set<string>): string {
   return unique;
 }
 
-function scanDocuments(courseDir: string): Document[] {
-  const entries = fs.readdirSync(courseDir, { withFileTypes: true });
-  const slugSet = new Set<string>();
+function scanDocumentsInDir(
+  dir: string,
+  slugSet: Set<string>
+): Document[] {
+  if (!fs.existsSync(dir)) return [];
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
   const documents: Document[] = [];
 
   for (const entry of entries) {
@@ -45,7 +51,7 @@ function scanDocuments(courseDir: string): Document[] {
     const ext = getExtension(entry.name);
     if (!SUPPORTED_EXTENSIONS.has(ext)) continue;
 
-    const filePath = path.join(courseDir, entry.name);
+    const filePath = path.join(dir, entry.name);
     const stat = fs.statSync(filePath);
     const publicPath = `/content/${path
       .relative(CONTENT_DIR, filePath)
@@ -76,13 +82,21 @@ function scanCourses(semesterDir: string): Course[] {
     if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
 
     const courseDir = path.join(semesterDir, entry.name);
-    const documents = scanDocuments(courseDir);
-    if (documents.length === 0) continue;
+    const slugSet = new Set<string>();
+    // Materials: files in course root only (notes/ dir is skipped via isFile()).
+    const documents = scanDocumentsInDir(courseDir, slugSet);
+    const notes = scanDocumentsInDir(
+      path.join(courseDir, NOTES_DIR_NAME),
+      slugSet
+    );
+
+    if (documents.length === 0 && notes.length === 0) continue;
 
     courses.push({
       slug: slugify(entry.name),
       name: entry.name,
       documents,
+      notes,
     });
   }
 
@@ -118,10 +132,15 @@ function scanSemesters(): Semester[] {
 export function scanContentTree(): ContentTree {
   const semesters = scanSemesters();
   const totalCourses = semesters.reduce((sum, s) => sum + s.courses.length, 0);
-  const totalDocuments = semesters.reduce(
-    (sum, s) => sum + s.courses.reduce((cSum, c) => cSum + c.documents.length, 0),
+  const totalMaterials = semesters.reduce(
+    (sum, s) =>
+      sum + s.courses.reduce((cSum, c) => cSum + c.documents.length, 0),
+    0
+  );
+  const totalNotes = semesters.reduce(
+    (sum, s) => sum + s.courses.reduce((cSum, c) => cSum + c.notes.length, 0),
     0
   );
 
-  return { semesters, totalCourses, totalDocuments };
+  return { semesters, totalCourses, totalMaterials, totalNotes };
 }

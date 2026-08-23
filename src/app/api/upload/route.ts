@@ -1,5 +1,5 @@
 import { existsSync } from "fs";
-import { writeFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
@@ -9,7 +9,15 @@ import {
   isPathWithinContentDir,
   sanitizeFilename,
 } from "@/lib/content/paths";
-import { getCourse, getSemester } from "@/lib/content";
+
+export type UploadKind = "materials" | "notes";
+
+function parseUploadKind(value: FormDataEntryValue | null): UploadKind | null {
+  if (value === "materials" || value === "notes") return value;
+  // Back-compat: older clients without kind upload to materials.
+  if (value === null || value === "") return "materials";
+  return null;
+}
 
 // Local/dev only: writes to public/content/ do not persist on Vercel serverless.
 export async function POST(request: Request) {
@@ -18,18 +26,26 @@ export async function POST(request: Request) {
     const file = formData.get("file");
     const semesterSlug = formData.get("semesterSlug");
     const courseSlug = formData.get("courseSlug");
+    const kind =
+      parseUploadKind(formData.get("kind")) ??
+      parseUploadKind(formData.get("target"));
+
+    const fileName = formData.get("fileName");
 
     if (
       !(file instanceof File) ||
       typeof semesterSlug !== "string" ||
       typeof courseSlug !== "string" ||
       !semesterSlug.trim() ||
-      !courseSlug.trim()
+      !courseSlug.trim() ||
+      !kind
     ) {
       return NextResponse.json({ error: "Invalid upload request." }, { status: 400 });
     }
 
-    const safeName = sanitizeFilename(file.name);
+    const requestedName =
+      typeof fileName === "string" && fileName.trim() ? fileName.trim() : file.name;
+    const safeName = sanitizeFilename(requestedName);
     if (!safeName) {
       return NextResponse.json(
         { error: "Unsupported file type. Allowed: .pdf, .pptx, .docx" },
@@ -42,7 +58,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
 
-    const targetPath = path.join(courseDir, safeName);
+    const targetDir =
+      kind === "notes" ? path.join(courseDir, "notes") : courseDir;
+
+    if (kind === "notes" && !existsSync(targetDir)) {
+      await mkdir(targetDir, { recursive: true });
+    }
+
+    const targetPath = path.join(targetDir, safeName);
     if (!isPathWithinContentDir(targetPath)) {
       return NextResponse.json({ error: "Invalid file path." }, { status: 400 });
     }
@@ -59,7 +82,7 @@ export async function POST(request: Request) {
 
     revalidatePath(`/${semesterSlug}/${courseSlug}`);
 
-    return NextResponse.json({ success: true, fileName: safeName });
+    return NextResponse.json({ success: true, fileName: safeName, kind });
   } catch {
     return NextResponse.json({ error: "Upload failed. Please try again." }, { status: 500 });
   }

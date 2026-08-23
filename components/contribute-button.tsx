@@ -34,7 +34,7 @@ export function ContributeButton() {
               <Button
                 variant="outline"
                 size="icon-sm"
-                className="size-8 sm:hidden"
+                className="size-10 sm:hidden"
                 nativeButton={false}
                 render={
                   <a

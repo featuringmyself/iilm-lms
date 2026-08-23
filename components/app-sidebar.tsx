@@ -6,8 +6,11 @@ import {
 } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getContentTree } from "@/lib/content";
-import Link from "next/link";
-import { AppSidebarNav, AppSidebarScheduleLink } from "./app-sidebar-nav";
+import {
+  AppSidebarBrandLink,
+  AppSidebarNav,
+  AppSidebarScheduleLink,
+} from "./app-sidebar-nav";
 
 export function AppSidebar() {
   const tree = getContentTree();
@@ -19,14 +22,14 @@ export function AppSidebar() {
           <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-semibold tracking-tight text-primary-foreground">
             I
           </div>
-          <Link href="/" className="min-w-0 leading-tight">
+          <AppSidebarBrandLink className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-semibold tracking-tight text-sidebar-foreground">
               IILM LMS
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
               Unofficial · Student Led
             </p>
-          </Link>
+          </AppSidebarBrandLink>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -41,8 +44,10 @@ export function AppSidebar() {
         <p className="px-2 pt-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">
           {tree.totalCourses} course{tree.totalCourses === 1 ? "" : "s"}
           <span className="mx-1.5 text-border">·</span>
-          {tree.totalDocuments} material
-          {tree.totalDocuments === 1 ? "" : "s"}
+          {tree.totalMaterials} material
+          {tree.totalMaterials === 1 ? "" : "s"}
+          <span className="mx-1.5 text-border">·</span>
+          {tree.totalNotes} note{tree.totalNotes === 1 ? "" : "s"}
         </p>
       </SidebarFooter>
     </Sidebar>

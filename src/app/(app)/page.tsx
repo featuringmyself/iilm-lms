@@ -1,4 +1,4 @@
-import { BookOpen, FileStack, GraduationCap } from "lucide-react";
+import { BookOpen, FileStack, GraduationCap, StickyNote } from "lucide-react";
 
 import { CourseCard } from "@/components/course-card";
 import { PageHeader } from "@/components/page-header";
@@ -16,9 +16,10 @@ export default function DashboardPage() {
         description="Browse semesters, courses, and learning materials."
       />
 
-      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-2.5 sm:mb-8 sm:gap-3 lg:grid-cols-4">
         <StatCard label="Courses" value={stats.courses} icon={BookOpen} />
-        <StatCard label="Materials" value={stats.documents} icon={FileStack} />
+        <StatCard label="Materials" value={stats.materials} icon={FileStack} />
+        <StatCard label="Notes" value={stats.notes} icon={StickyNote} />
         <StatCard label="Semesters" value={stats.semesters} icon={GraduationCap} />
       </div>
 
@@ -33,7 +34,7 @@ export default function DashboardPage() {
               {semester.courses.length === 1 ? "" : "s"}
             </span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {semester.courses.map((course) => (
               <CourseCard
                 key={course.slug}

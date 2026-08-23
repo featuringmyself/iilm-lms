@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { DocumentTable } from "@/components/document-table";
+import { CourseContentTabs } from "@/components/course-content-tabs";
 import { PageHeader } from "@/components/page-header";
-import { UploadFileButton } from "@/components/upload-file-button";
 import { getContentTree, getCourse, getSemester } from "@/lib/content";
 
 export function generateStaticParams() {
@@ -26,19 +25,23 @@ export default async function CoursePage({
 
   if (!semester || !course) notFound();
 
+  const materialCount = course.documents.length;
+  const noteCount = course.notes.length;
+  const materialLabel = `${materialCount} material${materialCount === 1 ? "" : "s"}`;
+  const noteLabel = `${noteCount} note${noteCount === 1 ? "" : "s"}`;
+
   return (
     <>
       <PageHeader
         title={course.name}
-        description={`${course.documents.length} material${course.documents.length === 1 ? "" : "s"} in this course`}
-        action={
-          <UploadFileButton
-            semesterSlug={semester.slug}
-            courseSlug={course.slug}
-          />
-        }
+        description={`${semester.displayName} · ${materialLabel} · ${noteLabel}`}
       />
-      <DocumentTable course={course} semesterSlug={semester.slug} />
+      <CourseContentTabs
+        semesterSlug={semester.slug}
+        courseSlug={course.slug}
+        materials={course.documents}
+        notes={course.notes}
+      />
     </>
   );
 }

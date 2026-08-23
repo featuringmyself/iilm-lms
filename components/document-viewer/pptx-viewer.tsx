@@ -162,7 +162,7 @@ export function PptxViewer({ publicPath }: PptxViewerProps) {
   return (
     <div
       ref={wrapperRef}
-      className="relative w-full min-h-[min(70vh,720px)] p-6"
+      className="relative w-full min-h-[min(70vh,720px)] p-3 sm:p-6"
     >
       {/*
         Skeleton stays in-flow until the first successful preview, then unmounts once.

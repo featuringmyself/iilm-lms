@@ -44,7 +44,7 @@ export function DocxViewer({ publicPath }: DocxViewerProps) {
 
   if (loading) {
     return (
-      <div className="w-full space-y-4 p-8">
+      <div className="w-full space-y-4 p-4 sm:p-8">
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-full" />
@@ -67,7 +67,7 @@ export function DocxViewer({ publicPath }: DocxViewerProps) {
 
   return (
     <article
-      className="prose-content w-full max-w-none bg-card p-8 shadow-xs ring-1 ring-foreground/10"
+      className="prose-content w-full max-w-none overflow-x-auto bg-card p-4 shadow-xs ring-1 ring-foreground/10 sm:p-8"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

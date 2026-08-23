@@ -9,14 +9,27 @@ interface DownloadButtonProps {
 
 export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      nativeButton={false}
-      render={<a href={publicPath} download={fileName} />}
-    >
-      <Download />
-      Download
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="icon-sm"
+        className="size-10 shrink-0 sm:hidden"
+        nativeButton={false}
+        render={<a href={publicPath} download={fileName} />}
+      >
+        <Download className="size-4" />
+        <span className="sr-only">Download</span>
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="hidden shrink-0 sm:inline-flex"
+        nativeButton={false}
+        render={<a href={publicPath} download={fileName} />}
+      >
+        <Download />
+        Download
+      </Button>
+    </>
   );
 }

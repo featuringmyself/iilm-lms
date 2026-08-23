@@ -15,10 +15,11 @@ export default function SchedulePage() {
         title="Schedule"
         description={`${timetableMeta.university} · ${timetableMeta.school} · Section ${timetableMeta.section}`}
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <>
             <Button
               variant="outline"
               size="sm"
+              className="h-10 w-full justify-center sm:h-8 sm:w-auto"
               nativeButton={false}
               render={
                 <a
@@ -28,11 +29,12 @@ export default function SchedulePage() {
                 />
               }
             >
-              Official timetable
+              <span className="sm:hidden">EduPage</span>
+              <span className="hidden sm:inline">Official timetable</span>
               <ExternalLink data-icon="inline-end" />
             </Button>
             <AddToCalendarButton />
-          </div>
+          </>
         }
       />
 

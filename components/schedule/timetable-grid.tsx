@@ -21,7 +21,7 @@ function ClassCell({ entry, colSpan }: { entry: ClassEntry; colSpan: number }) {
       className="border border-border p-0 align-stretch"
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
-      <div className="flex h-full min-h-[88px] flex-col">
+      <div className="flex h-full min-h-[76px] flex-col sm:min-h-[88px]">
         <div className="flex items-start justify-between gap-1 px-1.5 pt-1.5 text-[9px] leading-tight font-medium opacity-80 sm:text-[10px]">
           <span className="min-w-0 truncate">{location}</span>
           {entry.group ? (
@@ -55,12 +55,12 @@ function EmptyCell({ isLunch }: { isLunch?: boolean }) {
         isLunch ? "bg-muted/40" : "bg-card"
       )}
     >
-      <div className="min-h-[88px]" />
+      <div className="min-h-[76px] sm:min-h-[88px]" />
     </td>
   );
 }
 
-function DayRow({ day, label }: { day: Weekday; label: string }) {
+function DayRow({ day, label, shortLabel }: { day: Weekday; label: string; shortLabel: string }) {
   const cells: ReactNode[] = [];
   let period = 1;
 
@@ -93,9 +93,10 @@ function DayRow({ day, label }: { day: Weekday; label: string }) {
     <tr>
       <th
         scope="row"
-        className="sticky left-0 z-10 border border-border bg-primary px-2 py-2 text-left text-[11px] font-semibold tracking-wide whitespace-nowrap text-primary-foreground sm:px-3 sm:text-xs"
+        className="sticky left-0 z-10 border border-border bg-primary px-1.5 py-2 text-left text-[10px] font-semibold tracking-wide whitespace-nowrap text-primary-foreground shadow-[2px_0_0_0_var(--border)] sm:px-3 sm:text-xs"
       >
-        {label}
+        <span className="sm:hidden">{shortLabel}</span>
+        <span className="hidden sm:inline">{label}</span>
       </th>
       {cells}
     </tr>
@@ -104,13 +105,13 @@ function DayRow({ day, label }: { day: Weekday; label: string }) {
 
 export function TimetableGrid() {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="w-full min-w-[920px] border-collapse text-left">
+    <div className="-mx-3 overflow-x-auto overscroll-x-contain border-y border-border bg-card sm:mx-0 sm:rounded-lg sm:border">
+      <table className="w-full min-w-[860px] border-collapse text-left sm:min-w-[920px]">
         <thead>
           <tr>
             <th
               scope="col"
-              className="sticky left-0 z-20 border border-border bg-primary px-2 py-2.5 text-[11px] font-semibold text-primary-foreground sm:px-3 sm:text-xs"
+              className="sticky left-0 z-20 border border-border bg-primary px-1.5 py-2 text-[10px] font-semibold text-primary-foreground shadow-[2px_0_0_0_var(--border)] sm:px-3 sm:py-2.5 sm:text-xs"
             >
               Day
             </th>
@@ -119,17 +120,17 @@ export function TimetableGrid() {
                 key={slot.period}
                 scope="col"
                 className={cn(
-                  "border border-border bg-primary px-1 py-2.5 text-center text-[10px] font-semibold whitespace-nowrap text-primary-foreground sm:px-1.5 sm:text-[11px]",
+                  "border border-border bg-primary px-1 py-2 text-center text-[9px] font-semibold whitespace-nowrap text-primary-foreground sm:px-1.5 sm:py-2.5 sm:text-[11px]",
                   slot.isLunch && "bg-primary/90"
                 )}
               >
                 <span className="block font-mono tabular-nums">{slot.label}</span>
                 {slot.isLunch ? (
-                  <span className="mt-0.5 block text-[9px] font-medium tracking-wide uppercase opacity-80">
+                  <span className="mt-0.5 block text-[8px] font-medium tracking-wide uppercase opacity-80 sm:text-[9px]">
                     Lunch
                   </span>
                 ) : (
-                  <span className="mt-0.5 block font-mono text-[9px] font-normal opacity-70">
+                  <span className="mt-0.5 block font-mono text-[8px] font-normal opacity-70 sm:text-[9px]">
                     P{slot.period}
                   </span>
                 )}
@@ -139,7 +140,12 @@ export function TimetableGrid() {
         </thead>
         <tbody>
           {weekdays.map((day) => (
-            <DayRow key={day.id} day={day.id} label={day.label} />
+            <DayRow
+              key={day.id}
+              day={day.id}
+              label={day.label}
+              shortLabel={day.label.slice(0, 3)}
+            />
           ))}
         </tbody>
       </table>

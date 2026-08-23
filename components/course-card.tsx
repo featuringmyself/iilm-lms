@@ -14,6 +14,7 @@ interface CourseCardProps {
 export function CourseCard({ course, semesterSlug, className }: CourseCardProps) {
   const theme = getCourseTheme(course.slug);
   const Icon = theme.icon;
+  const noteCount = course.notes?.length ?? 0;
 
   const typeCounts = course.documents.reduce<Record<string, number>>((acc, doc) => {
     acc[doc.extension] = (acc[doc.extension] ?? 0) + 1;
@@ -24,7 +25,7 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
     <Link
       href={`/${semesterSlug}/${course.slug}`}
       className={cn(
-        "group flex h-full flex-col rounded-lg border border-border bg-card p-4 transition-all duration-150",
+        "group flex h-full flex-col rounded-lg border border-border bg-card p-3.5 transition-all duration-150 sm:p-4",
         "hover:border-foreground/20 hover:shadow-sm",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className
@@ -49,13 +50,19 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
         {course.name}
       </h3>
 
-      <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-        <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+      <div className="mt-auto flex items-end justify-between gap-2 pt-3.5 sm:pt-4">
+        <p className="font-mono text-[11px] leading-snug tabular-nums text-muted-foreground">
           {course.documents.length} material
           {course.documents.length === 1 ? "" : "s"}
+          {noteCount > 0 ? (
+            <>
+              <span className="mx-1 text-border">·</span>
+              {noteCount} note{noteCount === 1 ? "" : "s"}
+            </>
+          ) : null}
         </p>
         {Object.keys(typeCounts).length > 0 ? (
-          <div className="flex flex-wrap justify-end gap-1">
+          <div className="hidden flex-wrap justify-end gap-1 sm:flex">
             {Object.entries(typeCounts).map(([ext, count]) => {
               const badge = getFileTypeBadge(ext);
               return (

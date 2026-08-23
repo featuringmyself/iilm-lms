@@ -22,27 +22,36 @@ interface ContentBreadcrumbProps {
 export function ContentBreadcrumb({ segments }: ContentBreadcrumbProps) {
   return (
     <Breadcrumb>
-      <BreadcrumbList>
+      <BreadcrumbList className="flex-nowrap gap-1 sm:gap-1.5">
         {segments.map((segment, index) => {
           const isLast = index === segments.length - 1;
+          // On narrow screens, hide intermediate crumbs when there are 3+.
+          const hideOnMobile =
+            segments.length > 2 && !isLast && index !== 0;
 
           return (
             <Fragment key={`${segment.label}-${index}`}>
-              <BreadcrumbItem>
+              <BreadcrumbItem
+                className={hideOnMobile ? "hidden sm:inline-flex" : undefined}
+              >
                 {isLast || !segment.href ? (
-                  <BreadcrumbPage className="max-w-[200px] truncate text-[13px] font-medium sm:max-w-xs">
+                  <BreadcrumbPage className="max-w-[140px] truncate text-[12px] font-medium sm:max-w-[200px] sm:text-[13px] md:max-w-xs">
                     {segment.label}
                   </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink
-                    className="text-[13px] text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                    className="max-w-[100px] truncate text-[12px] text-muted-foreground transition-colors duration-150 hover:text-foreground sm:max-w-[160px] sm:text-[13px]"
                     render={<Link href={segment.href} />}
                   >
                     {segment.label}
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
-              {!isLast ? <BreadcrumbSeparator /> : null}
+              {!isLast ? (
+                <BreadcrumbSeparator
+                  className={hideOnMobile ? "hidden sm:block" : undefined}
+                />
+              ) : null}
             </Fragment>
           );
         })}

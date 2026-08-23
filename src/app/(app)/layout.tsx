@@ -8,7 +8,7 @@ export default function AppShellLayout({ children }: LayoutProps<"/">) {
       <AppSidebar />
       <SidebarInset className="flex min-h-svh flex-col bg-background">
         <SiteHeader />
-        <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mx-auto w-full max-w-7xl flex-1 px-3 py-5 sm:px-6 sm:py-8">
           {children}
         </div>
       </SidebarInset>

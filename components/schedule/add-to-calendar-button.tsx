@@ -20,7 +20,12 @@ export function AddToCalendarButton() {
   }
 
   return (
-    <Button type="button" size="sm" onClick={handleDownload}>
+    <Button
+      type="button"
+      size="sm"
+      className="h-10 w-full justify-center sm:h-8 sm:w-auto"
+      onClick={handleDownload}
+    >
       <CalendarPlus data-icon="inline-start" />
       Add to calendar
     </Button>

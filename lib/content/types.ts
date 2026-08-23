@@ -13,7 +13,10 @@ export interface Document {
 export interface Course {
   slug: string;
   name: string;
+  /** Materials in the course folder root (pdf/pptx/docx). */
   documents: Document[];
+  /** Notes stored under `{course}/notes/`. */
+  notes: Document[];
 }
 
 export interface Semester {
@@ -26,11 +29,15 @@ export interface Semester {
 export interface ContentTree {
   semesters: Semester[];
   totalCourses: number;
-  totalDocuments: number;
+  /** Files in course folder roots (excludes notes/). */
+  totalMaterials: number;
+  /** Files in course notes/ subfolders. */
+  totalNotes: number;
 }
 
 export interface ContentStats {
   semesters: number;
   courses: number;
-  documents: number;
+  materials: number;
+  notes: number;
 }

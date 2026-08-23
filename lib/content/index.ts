@@ -17,7 +17,8 @@ export function getContentStats(): ContentStats {
   return {
     semesters: tree.semesters.length,
     courses: tree.totalCourses,
-    documents: tree.totalDocuments,
+    materials: tree.totalMaterials,
+    notes: tree.totalNotes,
   };
 }
 
@@ -26,7 +27,12 @@ export function getDocument(
   courseSlug: string,
   docSlug: string
 ): Document | undefined {
-  return getCourse(semesterSlug, courseSlug)?.documents.find((d) => d.slug === docSlug);
+  const course = getCourse(semesterSlug, courseSlug);
+  if (!course) return undefined;
+  return (
+    course.documents.find((d) => d.slug === docSlug) ??
+    course.notes.find((d) => d.slug === docSlug)
+  );
 }
 
 export function getAllDocuments(): Array<{
@@ -40,6 +46,9 @@ export function getAllDocuments(): Array<{
   for (const semester of tree.semesters) {
     for (const course of semester.courses) {
       for (const document of course.documents) {
+        results.push({ semester, course, document });
+      }
+      for (const document of course.notes) {
         results.push({ semester, course, document });
       }
     }

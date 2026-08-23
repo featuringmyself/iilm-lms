@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Calendar, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import {
   SidebarGroup,
@@ -15,6 +15,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { getCourseTheme } from "@/lib/course-themes";
 import type { ContentTree } from "@/lib/content";
@@ -24,8 +25,33 @@ interface AppSidebarNavProps {
   tree: ContentTree;
 }
 
+/** Closes the mobile sheet on navigate; no-op on desktop. */
+function useCloseMobileSidebar() {
+  const { isMobile, setOpenMobile } = useSidebar();
+  return () => {
+    if (isMobile) setOpenMobile(false);
+  };
+}
+
+export function AppSidebarBrandLink({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  const closeMobile = useCloseMobileSidebar();
+
+  return (
+    <Link href="/" className={className} onClick={closeMobile}>
+      {children}
+    </Link>
+  );
+}
+
 export function AppSidebarScheduleLink() {
   const pathname = usePathname();
+  const closeMobile = useCloseMobileSidebar();
   const isScheduleActive = pathname === "/schedule";
 
   return (
@@ -34,8 +60,8 @@ export function AppSidebarScheduleLink() {
         <SidebarMenuButton
           isActive={isScheduleActive}
           size="sm"
-          className="h-8 text-[13px] font-normal transition-colors duration-150"
-          render={<Link href="/schedule" />}
+          className="h-10 text-[13px] font-normal transition-colors duration-150 md:h-8"
+          render={<Link href="/schedule" onClick={closeMobile} />}
         >
           <Calendar className="!size-3.5 text-primary" />
           <span className="truncate">Schedule</span>
@@ -47,6 +73,7 @@ export function AppSidebarScheduleLink() {
 
 export function AppSidebarNav({ tree }: AppSidebarNavProps) {
   const pathname = usePathname();
+  const closeMobile = useCloseMobileSidebar();
   const [openSemesters, setOpenSemesters] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(tree.semesters.map((s) => [s.slug, true]))
   );
@@ -68,7 +95,7 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                 }))
               }
               className={cn(
-                "mb-0.5 flex h-7 w-full items-center justify-between rounded-md px-2 transition-colors duration-150",
+                "mb-0.5 flex h-9 w-full items-center justify-between rounded-md px-2 transition-colors duration-150 md:h-7",
                 "hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               )}
             >
@@ -106,12 +133,14 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                           isActive={pathname === courseHref}
                           size="sm"
                           className={cn(
-                            "h-8 text-[13px] font-normal transition-colors duration-150",
+                            "h-10 text-[13px] font-normal transition-colors duration-150 md:h-8",
                             isCourseActive && pathname !== courseHref
                               ? "bg-sidebar-accent/60 text-sidebar-accent-foreground"
                               : null
                           )}
-                          render={<Link href={courseHref} />}
+                          render={
+                            <Link href={courseHref} onClick={closeMobile} />
+                          }
                         >
                           <Icon className={cn("!size-3.5", theme.iconColor)} />
                           <span className="truncate">{course.name}</span>
@@ -131,12 +160,15 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                                   <SidebarMenuSubButton
                                     size="sm"
                                     isActive={!isPdf && pathname === docHref}
-                                    className="h-7 text-[12px] text-muted-foreground transition-colors duration-150 data-active:font-medium data-active:text-sidebar-accent-foreground"
+                                    className="h-9 text-[12px] text-muted-foreground transition-colors duration-150 data-active:font-medium data-active:text-sidebar-accent-foreground md:h-7"
                                     render={
                                       isPdf ? (
-                                        <a href={docHref} />
+                                        <a href={docHref} onClick={closeMobile} />
                                       ) : (
-                                        <Link href={docHref} />
+                                        <Link
+                                          href={docHref}
+                                          onClick={closeMobile}
+                                        />
                                       )
                                     }
                                   >
