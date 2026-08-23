@@ -7,7 +7,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getContentTree } from "@/lib/content";
 import Link from "next/link";
-import { AppSidebarNav } from "./app-sidebar-nav";
+import { AppSidebarNav, AppSidebarScheduleLink } from "./app-sidebar-nav";
 
 export function AppSidebar() {
   const tree = getContentTree();
@@ -36,8 +36,9 @@ export function AppSidebar() {
           </div>
         </ScrollArea>
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border px-3 py-2.5">
-        <p className="px-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+      <SidebarFooter className="border-t border-sidebar-border px-2 py-2">
+        <AppSidebarScheduleLink />
+        <p className="px-2 pt-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">
           {tree.totalCourses} course{tree.totalCourses === 1 ? "" : "s"}
           <span className="mx-1.5 text-border">·</span>
           {tree.totalDocuments} material

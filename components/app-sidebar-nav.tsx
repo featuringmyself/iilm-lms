@@ -24,33 +24,35 @@ interface AppSidebarNavProps {
   tree: ContentTree;
 }
 
+export function AppSidebarScheduleLink() {
+  const pathname = usePathname();
+  const isScheduleActive = pathname === "/schedule";
+
+  return (
+    <SidebarMenu className="gap-0.5">
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={isScheduleActive}
+          size="sm"
+          className="h-8 text-[13px] font-normal transition-colors duration-150"
+          render={<Link href="/schedule" />}
+        >
+          <Calendar className="!size-3.5 text-primary" />
+          <span className="truncate">Schedule</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
 export function AppSidebarNav({ tree }: AppSidebarNavProps) {
   const pathname = usePathname();
   const [openSemesters, setOpenSemesters] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(tree.semesters.map((s) => [s.slug, true]))
   );
-  const isScheduleActive = pathname === "/schedule";
 
   return (
     <>
-      <SidebarGroup className="py-1.5">
-        <SidebarGroupContent>
-          <SidebarMenu className="gap-0.5">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                isActive={isScheduleActive}
-                size="sm"
-                className="h-8 text-[13px] font-normal transition-colors duration-150"
-                render={<Link href="/schedule" />}
-              >
-                <Calendar className="!size-3.5 text-primary" />
-                <span className="truncate">Schedule</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-
       {tree.semesters.map((semester) => {
         const isOpen = openSemesters[semester.slug] ?? true;
         const isSemesterActive = pathname.startsWith(`/${semester.slug}`);
