@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="IILM LMS">
+  <!-- Flat academic indigo — aligned with app --primary -->
+  <rect width="32" height="32" rx="7" fill="#3D3A8C"/>
+  <!-- Open book: chunky pages for 16×16 legibility -->
+  <path
+    fill="#F8FAFC"
+    d="M5 9.25c0-.69.56-1.25 1.25-1.25H15v16H6.25C5.56 24 5 23.44 5 22.75V9.25z"
+  />
+  <path
+    fill="#F8FAFC"
+    d="M17 8h8.75c.69 0 1.25.56 1.25 1.25v13.5c0 .69-.56 1.25-1.25 1.25H17V8z"
+  />
+  <!-- Spine -->
+  <rect x="14.5" y="8" width="3" height="16" fill="#3D3A8C"/>
+</svg>
