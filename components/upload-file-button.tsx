@@ -189,7 +189,7 @@ export function UploadFileButton({
         {uploading ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
-          <Upload className="size-4" />
+          <Upload className="size-4" strokeWidth={1.75} />
         )}
         {uploading ? "Uploading…" : label}
       </Button>

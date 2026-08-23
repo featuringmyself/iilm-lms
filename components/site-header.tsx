@@ -3,7 +3,6 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 import { ContributeButton } from "./contribute-button";
-import { ShareButton } from "./share-button";
 import { ContentBreadcrumb, type BreadcrumbSegment } from "./content-breadcrumb";
 import Link from "next/link";
 
@@ -32,7 +31,6 @@ export function SiteHeader({ breadcrumbs }: SiteHeaderProps) {
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <ContributeButton />
-        <ShareButton />
         <ThemeToggle />
       </div>
     </header>

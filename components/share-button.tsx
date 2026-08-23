@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 function canUseNativeShare(): boolean {
   if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
@@ -28,7 +29,22 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-export function ShareButton() {
+function toAbsoluteUrl(url: string): string {
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${window.location.origin}${path}`;
+}
+
+interface ShareButtonProps {
+  url: string;
+  title: string;
+  className?: string;
+}
+
+export function ShareButton({ url, title, className }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,12 +73,11 @@ export function ShareButton() {
   }, []);
 
   const handleShare = useCallback(async () => {
-    const url = window.location.href;
-    const title = document.title;
+    const materialUrl = toAbsoluteUrl(url);
 
     if (canUseNativeShare()) {
       try {
-        await navigator.share({ url, title });
+        await navigator.share({ url: materialUrl, title });
         return;
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
@@ -71,14 +86,14 @@ export function ShareButton() {
       }
     }
 
-    const didCopy = await copyToClipboard(url);
+    const didCopy = await copyToClipboard(materialUrl);
     if (didCopy) {
       showCopiedFeedback();
     }
-  }, [showCopiedFeedback]);
+  }, [url, title, showCopiedFeedback]);
 
   const tooltipLabel = copied ? "Link copied" : "Share";
-  const ariaLabel = copied ? "Link copied" : "Share page";
+  const ariaLabel = copied ? "Link copied" : "Share";
 
   return (
     <>
@@ -91,35 +106,18 @@ export function ShareButton() {
           <TooltipTrigger
             render={
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon-sm"
-                className="size-10 sm:hidden"
+                className={cn(
+                  "size-9 text-muted-foreground hover:text-foreground sm:size-7",
+                  className
+                )}
                 onClick={handleShare}
                 aria-label={ariaLabel}
               />
             }
           >
-            <Share2 className="size-4" />
-          </TooltipTrigger>
-          <TooltipContent>{tooltipLabel}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
-      <TooltipProvider>
-        <Tooltip open={copied ? tooltipOpen : false} onOpenChange={setTooltipOpen}>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden h-8 sm:inline-flex"
-                onClick={handleShare}
-                aria-label={ariaLabel}
-              />
-            }
-          >
-            <Share2 className="size-4" />
-            {copied ? "Link copied" : "Share"}
+            <Share2 className="size-3.5" strokeWidth={1.75} />
           </TooltipTrigger>
           <TooltipContent>{tooltipLabel}</TooltipContent>
         </Tooltip>

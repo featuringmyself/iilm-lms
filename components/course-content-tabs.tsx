@@ -16,7 +16,7 @@ interface CourseContentTabsProps {
 
 function TabCount({ count }: { count: number }) {
   return (
-    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded px-1 font-mono text-[10px] font-medium tabular-nums text-muted-foreground group-data-active/tabs-trigger:bg-muted group-data-active/tabs-trigger:text-foreground">
+    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded bg-background px-1.5 font-mono text-[10px] font-medium tabular-nums text-muted-foreground dark:bg-background/40">
       {count}
     </span>
   );
@@ -42,14 +42,14 @@ export function CourseContentTabs({
         <TabsList className="h-10 w-full p-1 sm:h-9 sm:w-auto">
           <TabsTrigger
             value="materials"
-            className="group/tabs-trigger h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
+            className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
           >
             Materials
             <TabCount count={materials.length} />
           </TabsTrigger>
           <TabsTrigger
             value="notes"
-            className="group/tabs-trigger h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
+            className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
           >
             Notes
             <TabCount count={notes.length} />

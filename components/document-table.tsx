@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download, Eye, FileText, Presentation, Upload } from "lucide-react";
 
+import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -48,17 +49,35 @@ function FileIcon({ extension }: { extension: Document["extension"] }) {
   );
 }
 
+function getMaterialShareUrl(
+  doc: Document,
+  semesterSlug: string,
+  courseSlug: string
+): string {
+  if (doc.extension === "pdf") {
+    return doc.publicPath;
+  }
+
+  return `/${semesterSlug}/${courseSlug}/${doc.slug}`;
+}
+
 function DocumentActions({
   doc,
   viewHref,
   isPdf,
+  semesterSlug,
+  courseSlug,
   compact,
 }: {
   doc: Document;
   viewHref: string;
   isPdf: boolean;
+  semesterSlug: string;
+  courseSlug: string;
   compact?: boolean;
 }) {
+  const shareUrl = getMaterialShareUrl(doc, semesterSlug, courseSlug);
+
   return (
     <div className={cn("flex items-center gap-0.5", compact ? "justify-end" : "justify-end")}>
       <Button
@@ -68,9 +87,10 @@ function DocumentActions({
         nativeButton={false}
         render={isPdf ? <a href={viewHref} /> : <Link href={viewHref} />}
       >
-        <Eye className="size-3.5" />
+        <Eye className="size-3.5" strokeWidth={1.75} />
         <span className="sr-only">View</span>
       </Button>
+      <ShareButton url={shareUrl} title={doc.name} />
       <Button
         variant="ghost"
         size="icon-sm"
@@ -78,7 +98,7 @@ function DocumentActions({
         nativeButton={false}
         render={<a href={doc.publicPath} download={doc.fileName} />}
       >
-        <Download className="size-3.5" />
+        <Download className="size-3.5" strokeWidth={1.75} />
         <span className="sr-only">Download</span>
       </Button>
       <Button
@@ -175,7 +195,8 @@ export function DocumentTable({
                   doc={doc}
                   viewHref={viewHref}
                   isPdf={isPdf}
-                  compact
+                  semesterSlug={semesterSlug}
+                  courseSlug={courseSlug}
                 />
               </div>
             </li>
@@ -259,6 +280,8 @@ export function DocumentTable({
                         doc={doc}
                         viewHref={viewHref}
                         isPdf={isPdf}
+                        semesterSlug={semesterSlug}
+                        courseSlug={courseSlug}
                       />
                     </TableCell>
                   </TableRow>

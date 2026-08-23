@@ -17,7 +17,7 @@ export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
         nativeButton={false}
         render={<a href={publicPath} download={fileName} />}
       >
-        <Download className="size-4" />
+        <Download className="size-4" strokeWidth={1.75} />
         <span className="sr-only">Download</span>
       </Button>
       <Button
@@ -27,7 +27,7 @@ export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
         nativeButton={false}
         render={<a href={publicPath} download={fileName} />}
       >
-        <Download />
+        <Download strokeWidth={1.75} />
         Download
       </Button>
     </>

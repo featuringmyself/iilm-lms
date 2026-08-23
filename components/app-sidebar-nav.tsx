@@ -60,10 +60,10 @@ export function AppSidebarScheduleLink() {
         <SidebarMenuButton
           isActive={isScheduleActive}
           size="sm"
-          className="h-10 text-[13px] font-normal transition-colors duration-150 md:h-8"
+          className="h-8 text-[13px] font-normal transition-colors duration-150"
           render={<Link href="/schedule" onClick={closeMobile} />}
         >
-          <Calendar className="!size-3.5 text-primary" />
+          <Calendar className="!size-3.5 text-primary" strokeWidth={1.75} />
           <span className="truncate">Schedule</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -114,6 +114,7 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                   "size-3.5 text-muted-foreground transition-transform duration-150",
                   !isOpen && "-rotate-90"
                 )}
+                strokeWidth={1.75}
               />
             </button>
             {isOpen ? (
@@ -142,7 +143,10 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                             <Link href={courseHref} onClick={closeMobile} />
                           }
                         >
-                          <Icon className={cn("!size-3.5", theme.iconColor)} />
+                          <Icon
+                            className={cn("!size-3.5", theme.iconColor)}
+                            strokeWidth={1.75}
+                          />
                           <span className="truncate">{course.name}</span>
                           <SidebarMenuBadge className="font-mono text-[10px] text-muted-foreground">
                             {course.documents.length}

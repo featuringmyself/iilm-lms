@@ -1,3 +1,5 @@
+import { BookOpen } from "lucide-react";
+
 import {
   Sidebar,
   SidebarContent,
@@ -19,8 +21,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-3 py-3">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-semibold tracking-tight text-primary-foreground">
-            I
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <BookOpen className="size-3.5" strokeWidth={1.75} />
           </div>
           <AppSidebarBrandLink className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-semibold tracking-tight text-sidebar-foreground">
