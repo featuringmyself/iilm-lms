@@ -1,14 +1,24 @@
+import { cache } from "react";
+
 import { scanContentTree } from "./scanner";
 import type { ContentTree, Course, Semester } from "./types";
 
-export function getContentTree(): ContentTree {
+/** Dedupes content scans within a single request. */
+export const getContentTree = cache(async (): Promise<ContentTree> => {
   return scanContentTree();
+});
+
+export async function getSemester(
+  slug: string
+): Promise<Semester | undefined> {
+  const tree = await getContentTree();
+  return tree.semesters.find((s) => s.slug === slug);
 }
 
-export function getSemester(slug: string): Semester | undefined {
-  return getContentTree().semesters.find((s) => s.slug === slug);
-}
-
-export function getCourse(semesterSlug: string, courseSlug: string): Course | undefined {
-  return getSemester(semesterSlug)?.courses.find((c) => c.slug === courseSlug);
+export async function getCourse(
+  semesterSlug: string,
+  courseSlug: string
+): Promise<Course | undefined> {
+  const semester = await getSemester(semesterSlug);
+  return semester?.courses.find((c) => c.slug === courseSlug);
 }

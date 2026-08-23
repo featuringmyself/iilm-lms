@@ -5,6 +5,14 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import {
+  buildContentBlobPathname,
+  contentBlobExists,
+  isBlobConfigured,
+  isSafeContentSlug,
+  putContentBlob,
+} from "@/lib/content/blob";
+import { getCourse } from "@/lib/content/lookup";
+import {
   getCourseDiskPath,
   isPathWithinContentDir,
   sanitizeFilename,
@@ -19,7 +27,11 @@ function parseUploadKind(value: FormDataEntryValue | null): UploadKind | null {
   return null;
 }
 
-// Local/dev only: writes to public/content/ do not persist on Vercel serverless.
+/**
+ * Uploads course materials/notes.
+ * - When `BLOB_READ_WRITE_TOKEN` is set: stores in Vercel Blob (persists on Vercel).
+ * - Otherwise: writes to public/content/ (local/dev only; does not persist on serverless).
+ */
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -43,6 +55,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid upload request." }, { status: 400 });
     }
 
+    if (!isSafeContentSlug(semesterSlug) || !isSafeContentSlug(courseSlug)) {
+      return NextResponse.json({ error: "Invalid course path." }, { status: 400 });
+    }
+
     const requestedName =
       typeof fileName === "string" && fileName.trim() ? fileName.trim() : file.name;
     const safeName = sanitizeFilename(requestedName);
@@ -53,7 +69,42 @@ export async function POST(request: Request) {
       );
     }
 
-    const courseDir = getCourseDiskPath(semesterSlug, courseSlug);
+    const course = await getCourse(semesterSlug, courseSlug);
+    if (!course) {
+      return NextResponse.json({ error: "Course not found." }, { status: 404 });
+    }
+
+    if (isBlobConfigured()) {
+      const pathname = buildContentBlobPathname(
+        semesterSlug,
+        courseSlug,
+        safeName,
+        kind
+      );
+
+      if (await contentBlobExists(pathname)) {
+        return NextResponse.json(
+          { error: "A file with this name already exists." },
+          { status: 409 }
+        );
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      await putContentBlob(pathname, buffer, file.type || undefined);
+
+      revalidatePath(`/${semesterSlug}/${courseSlug}`);
+      revalidatePath(`/${semesterSlug}`);
+      revalidatePath("/");
+
+      return NextResponse.json({
+        success: true,
+        fileName: safeName,
+        kind,
+        pathname,
+      });
+    }
+
+    const courseDir = await getCourseDiskPath(semesterSlug, courseSlug);
     if (!courseDir) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
@@ -81,6 +132,8 @@ export async function POST(request: Request) {
     await writeFile(targetPath, buffer);
 
     revalidatePath(`/${semesterSlug}/${courseSlug}`);
+    revalidatePath(`/${semesterSlug}`);
+    revalidatePath("/");
 
     return NextResponse.json({ success: true, fileName: safeName, kind });
   } catch {

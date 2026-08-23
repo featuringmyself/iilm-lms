@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import type { ListBlobResultBlob } from "@vercel/blob";
 
+import { isBlobConfigured, listContentBlobs } from "./blob";
 import { CONTENT_DIR, SUPPORTED_EXTENSIONS } from "./constants";
 import type { ContentTree, Course, Document, FileExtension, Semester } from "./types";
 import {
@@ -12,6 +14,7 @@ import {
 } from "./slug";
 
 const NOTES_DIR_NAME = "notes";
+const BLOB_CONTENT_PREFIX = "content/";
 
 function toFileExtension(ext: string): FileExtension {
   if (ext === "pdf" || ext === "pptx" || ext === "docx") return ext;
@@ -36,10 +39,30 @@ function uniqueSlug(base: string, existing: Set<string>): string {
   return unique;
 }
 
-function scanDocumentsInDir(
-  dir: string,
-  slugSet: Set<string>
-): Document[] {
+function nameFromSlug(slug: string): string {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function buildTreeTotals(semesters: Semester[]): ContentTree {
+  const totalCourses = semesters.reduce((sum, s) => sum + s.courses.length, 0);
+  const totalMaterials = semesters.reduce(
+    (sum, s) =>
+      sum + s.courses.reduce((cSum, c) => cSum + c.documents.length, 0),
+    0
+  );
+  const totalNotes = semesters.reduce(
+    (sum, s) => sum + s.courses.reduce((cSum, c) => cSum + c.notes.length, 0),
+    0
+  );
+
+  return { semesters, totalCourses, totalMaterials, totalNotes };
+}
+
+function scanDocumentsInDir(dir: string, slugSet: Set<string>): Document[] {
   if (!fs.existsSync(dir)) return [];
 
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -104,8 +127,9 @@ function scanCourses(semesterDir: string): Course[] {
   return courses;
 }
 
-function scanSemesters(): Semester[] {
-  if (!fs.existsSync(CONTENT_DIR)) return [];
+/** Filesystem scan of public/content (local/dev fallback). */
+export function scanLocalContentTree(): ContentTree {
+  if (!fs.existsSync(CONTENT_DIR)) return buildTreeTotals([]);
 
   const entries = fs.readdirSync(CONTENT_DIR, { withFileTypes: true });
   const semesters: Semester[] = [];
@@ -126,21 +150,248 @@ function scanSemesters(): Semester[] {
   }
 
   semesters.sort((a, b) => a.name.localeCompare(b.name));
-  return semesters;
+  return buildTreeTotals(semesters);
 }
 
-export function scanContentTree(): ContentTree {
-  const semesters = scanSemesters();
-  const totalCourses = semesters.reduce((sum, s) => sum + s.courses.length, 0);
-  const totalMaterials = semesters.reduce(
-    (sum, s) =>
-      sum + s.courses.reduce((cSum, c) => cSum + c.documents.length, 0),
-    0
-  );
-  const totalNotes = semesters.reduce(
-    (sum, s) => sum + s.courses.reduce((cSum, c) => cSum + c.notes.length, 0),
-    0
-  );
+type CourseBucket = {
+  name: string;
+  materials: ListBlobResultBlob[];
+  notes: ListBlobResultBlob[];
+};
 
-  return { semesters, totalCourses, totalMaterials, totalNotes };
+function documentsFromBlobs(
+  blobs: ListBlobResultBlob[],
+  slugSet: Set<string>
+): Document[] {
+  const documents: Document[] = [];
+
+  for (const blob of blobs) {
+    const fileName = blob.pathname.split("/").pop() ?? "";
+    if (!fileName || fileName.startsWith(".")) continue;
+
+    const ext = getExtension(fileName);
+    if (!SUPPORTED_EXTENSIONS.has(ext)) continue;
+
+    documents.push({
+      slug: uniqueSlug(displayNameFromFile(fileName), slugSet),
+      name: displayNameFromFile(fileName),
+      fileName,
+      publicPath: blob.url,
+      extension: toFileExtension(ext),
+      size: formatFileSize(blob.size),
+      sizeBytes: blob.size,
+    });
+  }
+
+  documents.sort((a, b) => a.name.localeCompare(b.name));
+  return documents;
+}
+
+/** Discover course materials/notes from Vercel Blob under content/. */
+export async function scanBlobContentTree(): Promise<ContentTree> {
+  const blobs = await listContentBlobs();
+  const semesterMap = new Map<
+    string,
+    { name: string; courses: Map<string, CourseBucket> }
+  >();
+
+  for (const blob of blobs) {
+    if (!blob.pathname.startsWith(BLOB_CONTENT_PREFIX)) continue;
+
+    const relative = blob.pathname.slice(BLOB_CONTENT_PREFIX.length);
+    const parts = relative.split("/").filter(Boolean);
+    if (parts.length < 3) continue;
+
+    const [semesterSlug, courseSlug, ...rest] = parts;
+    if (!semesterSlug || !courseSlug || rest.length === 0) continue;
+
+    let isNotes = false;
+    let fileName: string;
+
+    if (rest[0] === NOTES_DIR_NAME) {
+      if (rest.length !== 2) continue;
+      isNotes = true;
+      fileName = rest[1]!;
+    } else if (rest.length === 1) {
+      fileName = rest[0]!;
+    } else {
+      // Nested paths outside notes/ are ignored.
+      continue;
+    }
+
+    if (!fileName || fileName.startsWith(".")) continue;
+    const ext = getExtension(fileName);
+    if (!SUPPORTED_EXTENSIONS.has(ext)) continue;
+
+    let semester = semesterMap.get(semesterSlug);
+    if (!semester) {
+      semester = {
+        name: semesterSlug,
+        courses: new Map(),
+      };
+      semesterMap.set(semesterSlug, semester);
+    }
+
+    let course = semester.courses.get(courseSlug);
+    if (!course) {
+      course = {
+        name: nameFromSlug(courseSlug) || courseSlug,
+        materials: [],
+        notes: [],
+      };
+      semester.courses.set(courseSlug, course);
+    }
+
+    if (isNotes) course.notes.push(blob);
+    else course.materials.push(blob);
+  }
+
+  const semesters: Semester[] = [];
+
+  for (const [semesterSlug, semester] of semesterMap) {
+    const courses: Course[] = [];
+
+    for (const [courseSlug, course] of semester.courses) {
+      const slugSet = new Set<string>();
+      const documents = documentsFromBlobs(course.materials, slugSet);
+      const notes = documentsFromBlobs(course.notes, slugSet);
+      if (documents.length === 0 && notes.length === 0) continue;
+
+      courses.push({
+        slug: courseSlug,
+        name: course.name,
+        documents,
+        notes,
+      });
+    }
+
+    if (courses.length === 0) continue;
+    courses.sort((a, b) => a.name.localeCompare(b.name));
+
+    semesters.push({
+      slug: semesterSlug,
+      name: semester.name,
+      displayName: formatSemesterName(semester.name),
+      courses,
+    });
+  }
+
+  semesters.sort((a, b) => a.name.localeCompare(b.name));
+  return buildTreeTotals(semesters);
+}
+
+function mergeDocuments(
+  preferred: Document[],
+  fallback: Document[],
+  slugSet: Set<string>
+): Document[] {
+  const byFileName = new Map<string, Document>();
+
+  for (const doc of preferred) {
+    byFileName.set(doc.fileName, doc);
+    slugSet.add(doc.slug);
+  }
+
+  for (const doc of fallback) {
+    if (byFileName.has(doc.fileName)) continue;
+    // Re-unique slug against the combined set.
+    const slug = uniqueSlug(displayNameFromFile(doc.fileName), slugSet);
+    byFileName.set(doc.fileName, { ...doc, slug });
+  }
+
+  return Array.from(byFileName.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+}
+
+/**
+ * Merge Blob + local trees by semester/course slug.
+ * Blob documents win on the same fileName (so uploads replace local listings).
+ * Local display names are preferred when both sides exist.
+ */
+export function mergeContentTrees(
+  blobTree: ContentTree,
+  localTree: ContentTree
+): ContentTree {
+  const semesterMap = new Map<string, Semester>();
+
+  for (const localSemester of localTree.semesters) {
+    semesterMap.set(localSemester.slug, {
+      ...localSemester,
+      courses: localSemester.courses.map((course) => ({
+        ...course,
+        documents: [...course.documents],
+        notes: [...course.notes],
+      })),
+    });
+  }
+
+  for (const blobSemester of blobTree.semesters) {
+    const existing = semesterMap.get(blobSemester.slug);
+    if (!existing) {
+      semesterMap.set(blobSemester.slug, {
+        ...blobSemester,
+        courses: blobSemester.courses.map((course) => ({
+          ...course,
+          documents: [...course.documents],
+          notes: [...course.notes],
+        })),
+      });
+      continue;
+    }
+
+    const courseMap = new Map(
+      existing.courses.map((course) => [course.slug, course])
+    );
+
+    for (const blobCourse of blobSemester.courses) {
+      const localCourse = courseMap.get(blobCourse.slug);
+      if (!localCourse) {
+        courseMap.set(blobCourse.slug, {
+          ...blobCourse,
+          documents: [...blobCourse.documents],
+          notes: [...blobCourse.notes],
+        });
+        continue;
+      }
+
+      const slugSet = new Set<string>();
+      localCourse.documents = mergeDocuments(
+        blobCourse.documents,
+        localCourse.documents,
+        slugSet
+      );
+      localCourse.notes = mergeDocuments(
+        blobCourse.notes,
+        localCourse.notes,
+        slugSet
+      );
+    }
+
+    existing.courses = Array.from(courseMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }
+
+  const semesters = Array.from(semesterMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+  return buildTreeTotals(semesters);
+}
+
+/**
+ * Prefer Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (merges with local
+ * so git-seeded public/content still appears until migrated). Falls back to
+ * a local public/content scan when the token is missing.
+ */
+export async function scanContentTree(): Promise<ContentTree> {
+  if (!isBlobConfigured()) {
+    return scanLocalContentTree();
+  }
+
+  const blobTree = await scanBlobContentTree();
+  const localTree = scanLocalContentTree();
+  if (localTree.semesters.length === 0) return blobTree;
+  if (blobTree.semesters.length === 0) return localTree;
+  return mergeContentTrees(blobTree, localTree);
 }

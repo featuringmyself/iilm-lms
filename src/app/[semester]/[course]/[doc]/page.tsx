@@ -9,8 +9,9 @@ import {
   getSemester,
 } from "@/lib/content";
 
-export function generateStaticParams() {
-  return getAllDocuments().map(({ semester, course, document }) => ({
+export async function generateStaticParams() {
+  const docs = await getAllDocuments();
+  return docs.map(({ semester, course, document }) => ({
     semester: semester.slug,
     course: course.slug,
     doc: document.slug,
@@ -23,9 +24,9 @@ export default async function DocumentPage({
   const { semester: semesterSlug, course: courseSlug, doc: docSlug } =
     await params;
 
-  const semester = getSemester(semesterSlug);
-  const course = getCourse(semesterSlug, courseSlug);
-  const document = getDocument(semesterSlug, courseSlug, docSlug);
+  const semester = await getSemester(semesterSlug);
+  const course = await getCourse(semesterSlug, courseSlug);
+  const document = await getDocument(semesterSlug, courseSlug, docSlug);
 
   if (!semester || !course || !document) notFound();
 

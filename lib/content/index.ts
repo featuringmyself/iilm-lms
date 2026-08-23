@@ -1,7 +1,14 @@
 import type { ContentStats, ContentTree, Course, Document, Semester } from "./types";
 import { getContentTree, getCourse } from "./lookup";
 
-export type { ContentStats, ContentTree, Course, Document, FileExtension, Semester } from "./types";
+export type {
+  ContentStats,
+  ContentTree,
+  Course,
+  Document,
+  FileExtension,
+  Semester,
+} from "./types";
 export { formatSemesterName, slugify } from "./slug";
 export {
   CONTENT_DIR,
@@ -10,10 +17,15 @@ export {
   sanitizeFilename,
   SUPPORTED_EXTENSIONS,
 } from "./paths";
+export {
+  buildContentBlobPathname,
+  isBlobConfigured,
+  isSafeContentSlug,
+} from "./blob";
 export { getContentTree, getCourse, getSemester } from "./lookup";
 
-export function getContentStats(): ContentStats {
-  const tree = getContentTree();
+export async function getContentStats(): Promise<ContentStats> {
+  const tree = await getContentTree();
   return {
     semesters: tree.semesters.length,
     courses: tree.totalCourses,
@@ -22,12 +34,12 @@ export function getContentStats(): ContentStats {
   };
 }
 
-export function getDocument(
+export async function getDocument(
   semesterSlug: string,
   courseSlug: string,
   docSlug: string
-): Document | undefined {
-  const course = getCourse(semesterSlug, courseSlug);
+): Promise<Document | undefined> {
+  const course = await getCourse(semesterSlug, courseSlug);
   if (!course) return undefined;
   return (
     course.documents.find((d) => d.slug === docSlug) ??
@@ -35,13 +47,19 @@ export function getDocument(
   );
 }
 
-export function getAllDocuments(): Array<{
-  semester: Semester;
-  course: Course;
-  document: Document;
-}> {
-  const tree = getContentTree();
-  const results: Array<{ semester: Semester; course: Course; document: Document }> = [];
+export async function getAllDocuments(): Promise<
+  Array<{
+    semester: Semester;
+    course: Course;
+    document: Document;
+  }>
+> {
+  const tree = await getContentTree();
+  const results: Array<{
+    semester: Semester;
+    course: Course;
+    document: Document;
+  }> = [];
 
   for (const semester of tree.semesters) {
     for (const course of semester.courses) {
@@ -57,25 +75,39 @@ export function getAllDocuments(): Array<{
   return results;
 }
 
-export function getStaticParams(): Array<{
-  semester: string;
-  course?: string;
-  doc?: string;
-}> {
-  const params: Array<{ semester: string; course?: string; doc?: string }> = [];
+export async function getStaticParams(): Promise<
+  Array<{
+    semester: string;
+    course?: string;
+    doc?: string;
+  }>
+> {
+  const params: Array<{
+    semester: string;
+    course?: string;
+    doc?: string;
+  }> = [];
 
-  for (const { semester, course, document } of getAllDocuments()) {
-    params.push({ semester: semester.slug, course: course.slug, doc: document.slug });
+  for (const { semester, course, document } of await getAllDocuments()) {
+    params.push({
+      semester: semester.slug,
+      course: course.slug,
+      doc: document.slug,
+    });
   }
 
-  for (const semester of getContentTree().semesters) {
+  const tree = await getContentTree();
+  for (const semester of tree.semesters) {
     if (!params.some((p) => p.semester === semester.slug && !p.course)) {
       params.push({ semester: semester.slug });
     }
     for (const course of semester.courses) {
       if (
         !params.some(
-          (p) => p.semester === semester.slug && p.course === course.slug && !p.doc
+          (p) =>
+            p.semester === semester.slug &&
+            p.course === course.slug &&
+            !p.doc
         )
       ) {
         params.push({ semester: semester.slug, course: course.slug });

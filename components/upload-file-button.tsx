@@ -18,6 +18,8 @@ import {
   sanitizeFilename,
   splitFilename,
 } from "@/lib/content/sanitize-filename";
+import posthog from "posthog-js";
+
 import { cn } from "@/lib/utils";
 
 export type UploadKind = "materials" | "notes";
@@ -145,6 +147,13 @@ export function UploadFileButton({
       const data = (await response.json()) as { error?: string; success?: boolean };
 
       if (!response.ok) {
+        posthog.capture("file_upload_failed", {
+          file_extension: extension,
+          file_kind: kind,
+          semester_slug: semesterSlug,
+          course_slug: courseSlug,
+          status_code: response.status,
+        });
         if (response.status === 409) {
           showNameError(data.error ?? NAME_COLLISION_ERROR);
         } else {
@@ -153,10 +162,23 @@ export function UploadFileButton({
         return;
       }
 
+      posthog.capture("file_uploaded", {
+        file_extension: extension,
+        file_kind: kind,
+        semester_slug: semesterSlug,
+        course_slug: courseSlug,
+      });
       setDialogOpen(false);
       resetPending();
       router.refresh();
     } catch {
+      posthog.capture("file_upload_failed", {
+        file_extension: extension,
+        file_kind: kind,
+        semester_slug: semesterSlug,
+        course_slug: courseSlug,
+        status_code: 0,
+      });
       showNameError("Upload failed. Please try again.");
     } finally {
       setUploading(false);

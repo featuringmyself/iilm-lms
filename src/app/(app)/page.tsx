@@ -5,9 +5,9 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { getContentStats, getContentTree } from "@/lib/content";
 
-export default function DashboardPage() {
-  const tree = getContentTree();
-  const stats = getContentStats();
+export default async function DashboardPage() {
+  const tree = await getContentTree();
+  const stats = await getContentStats();
 
   return (
     <>

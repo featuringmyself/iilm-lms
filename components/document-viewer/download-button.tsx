@@ -1,4 +1,7 @@
+"use client";
+
 import { Download } from "lucide-react";
+import posthog from "posthog-js";
 
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +11,12 @@ interface DownloadButtonProps {
 }
 
 export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
+  function handleDownload() {
+    posthog.capture("document_downloaded", {
+      file_name: fileName,
+    });
+  }
+
   return (
     <>
       <Button
@@ -15,7 +24,7 @@ export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
         size="icon-sm"
         className="size-10 shrink-0 sm:hidden"
         nativeButton={false}
-        render={<a href={publicPath} download={fileName} />}
+        render={<a href={publicPath} download={fileName} onClick={handleDownload} />}
       >
         <Download className="size-4" strokeWidth={1.75} />
         <span className="sr-only">Download</span>
@@ -25,7 +34,7 @@ export function DownloadButton({ publicPath, fileName }: DownloadButtonProps) {
         size="sm"
         className="hidden shrink-0 sm:inline-flex"
         nativeButton={false}
-        render={<a href={publicPath} download={fileName} />}
+        render={<a href={publicPath} download={fileName} onClick={handleDownload} />}
       >
         <Download strokeWidth={1.75} />
         Download

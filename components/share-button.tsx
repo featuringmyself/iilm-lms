@@ -10,6 +10,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import posthog from "posthog-js";
+
 import { cn } from "@/lib/utils";
 
 function canUseNativeShare(): boolean {
@@ -78,6 +80,10 @@ export function ShareButton({ url, title, className }: ShareButtonProps) {
     if (canUseNativeShare()) {
       try {
         await navigator.share({ url: materialUrl, title });
+        posthog.capture("document_shared", {
+          document_title: title,
+          share_method: "native_share",
+        });
         return;
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
@@ -88,6 +94,10 @@ export function ShareButton({ url, title, className }: ShareButtonProps) {
 
     const didCopy = await copyToClipboard(materialUrl);
     if (didCopy) {
+      posthog.capture("document_shared", {
+        document_title: title,
+        share_method: "copy_link",
+      });
       showCopiedFeedback();
     }
   }, [url, title, showCopiedFeedback]);

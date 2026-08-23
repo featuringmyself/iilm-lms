@@ -4,8 +4,9 @@ import { CourseCard } from "@/components/course-card";
 import { PageHeader } from "@/components/page-header";
 import { getContentTree, getSemester } from "@/lib/content";
 
-export function generateStaticParams() {
-  return getContentTree().semesters.map((semester) => ({
+export async function generateStaticParams() {
+  const tree = await getContentTree();
+  return tree.semesters.map((semester) => ({
     semester: semester.slug,
   }));
 }
@@ -14,7 +15,7 @@ export default async function SemesterPage({
   params,
 }: PageProps<"/[semester]">) {
   const { semester: semesterSlug } = await params;
-  const semester = getSemester(semesterSlug);
+  const semester = await getSemester(semesterSlug);
 
   if (!semester) notFound();
 

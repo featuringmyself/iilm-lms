@@ -14,8 +14,8 @@ import {
   AppSidebarScheduleLink,
 } from "./app-sidebar-nav";
 
-export function AppSidebar() {
-  const tree = getContentTree();
+export async function AppSidebar() {
+  const tree = await getContentTree();
 
   return (
     <Sidebar>

@@ -2,6 +2,8 @@
 
 import { CalendarPlus } from "lucide-react";
 
+import posthog from "posthog-js";
+
 import { Button } from "@/components/ui/button";
 import { generateTimetableIcs, getIcsFilename } from "@/lib/schedule";
 
@@ -17,6 +19,10 @@ export function AddToCalendarButton() {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
+
+    posthog.capture("calendar_downloaded", {
+      file_name: getIcsFilename(),
+    });
   }
 
   return (

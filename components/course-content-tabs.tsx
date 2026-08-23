@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 
 import { DocumentTable } from "@/components/document-table";
 import { UploadFileButton, type UploadKind } from "@/components/upload-file-button";
@@ -34,7 +35,14 @@ export function CourseContentTabs({
     <Tabs
       value={tab}
       onValueChange={(value) => {
-        if (value === "materials" || value === "notes") setTab(value);
+        if (value === "materials" || value === "notes") {
+          posthog.capture("course_tab_switched", {
+            tab: value,
+            semester_slug: semesterSlug,
+            course_slug: courseSlug,
+          });
+          setTab(value);
+        }
       }}
       className="gap-4 sm:gap-5"
     >
