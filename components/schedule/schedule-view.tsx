@@ -14,9 +14,11 @@ import { TimetableGrid } from "@/components/schedule/timetable-grid";
 import type { ScheduleTask } from "@/lib/schedule";
 import {
   formatTaskDueDate,
+  getNextClass,
   getTaskUrgency,
 } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
+
 
 interface ScheduleViewProps {
   homework: ScheduleTask[];
@@ -249,6 +251,15 @@ export function ScheduleView({ homework, reminders }: ScheduleViewProps) {
   const upcomingReminderCount = reminders.filter(
     (t) => getTaskUrgency(t) !== "overdue"
   ).length;
+  const next = getNextClass();
+  const highlightNote =
+    next.status === "in_progress"
+      ? "Now highlighted on the grid"
+      : next.classItem
+        ? next.status === "later"
+          ? `${next.whenLabel} highlighted on the grid`
+          : "Next class highlighted on the grid"
+        : null;
 
   return (
     <Tabs defaultValue="timetable" className="gap-4 sm:gap-5">
@@ -279,6 +290,15 @@ export function ScheduleView({ homework, reminders }: ScheduleViewProps) {
       </TabsList>
 
       <TabsContent value="timetable" className="mt-0 outline-none">
+        {highlightNote ? (
+          <p className="mb-3 text-[12px] text-muted-foreground sm:text-[13px]">
+            <span className="font-mono tabular-nums text-foreground">
+              {next.nowHm}
+            </span>
+            <span className="mx-1.5 text-border">·</span>
+            {highlightNote}
+          </p>
+        ) : null}
         <TimetableGrid />
       </TabsContent>
 

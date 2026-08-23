@@ -15,86 +15,17 @@ export interface ScheduleTask {
   courseName?: string;
 }
 
-/** Sample homework & reminders for 1CSE3 · Odd semester 2026–27 */
+/** Homework & reminders for 1CSE3 · Odd semester 2026–27 */
 export const scheduleTasks: ScheduleTask[] = [
   {
-    id: "hw-calc-ps2",
+    id: "hw-comm-7cs-intro",
     type: "homework",
-    title: "Problem set 2 — derivatives",
-    description: "Questions 1–12 from the Applied Calculus worksheet.",
-    dueAt: "2026-08-20T23:59:00+05:30",
-    courseCode: "26SQSC103",
-    courseName: "Applied Calculus",
-  },
-  {
-    id: "hw-c-arrays",
-    type: "homework",
-    title: "Lab report: arrays & pointers",
-    description: "Submit the C lab write-up with sample outputs.",
-    dueAt: "2026-08-25T23:59:00+05:30",
-    courseCode: "26CSEC108",
-    courseName: "Programming in C",
-  },
-  {
-    id: "hw-quantum-ch3",
-    type: "homework",
-    title: "Chapter 3 practice questions",
-    description: "Semiconductor & Quantum Physics — energy bands & photons.",
-    dueAt: "2026-08-28T23:59:00+05:30",
-    courseCode: "26SQST101",
-    courseName: "Semiconductor and Quantum Physics",
-  },
-  {
-    id: "hw-comm-outline",
-    type: "homework",
-    title: "Presentation outline",
-    description: "One-page outline for the engineering communication talk.",
-    dueAt: "2026-09-05T23:59:00+05:30",
+    title: "7 Cs & 40-second self-introduction",
+    description:
+      "Prepare the 7 Cs of communication and record/deliver an introduction about yourself lasting at least 40 seconds.",
+    dueAt: "2026-08-29T23:59:00+05:30",
     courseCode: "26CCSS105",
     courseName: "Professional Communication for Engineers",
-  },
-  {
-    id: "hw-ai-reflection",
-    type: "homework",
-    title: "Reading reflection — automation",
-    description: "Short write-up on the assigned AI & automation article.",
-    dueAt: "2026-09-12T23:59:00+05:30",
-    courseCode: "26CSEC107",
-    courseName: "Foundation of AI and Automation",
-  },
-  {
-    id: "rem-calc-quiz",
-    type: "reminder",
-    title: "Bring calculator for Calculus quiz",
-    description: "Scientific calculator allowed; no phones.",
-    dueAt: "2026-08-26T09:00:00+05:30",
-    courseCode: "26SQSC103",
-    courseName: "Applied Calculus",
-  },
-  {
-    id: "rem-linux-usb",
-    type: "reminder",
-    title: "Bring USB drive for Linux lab",
-    description: "Bootable media session in Linux Administration Lab.",
-    dueAt: "2026-08-29T13:35:00+05:30",
-    courseCode: "26CSEP111",
-    courseName: "Linux Administration Lab",
-  },
-  {
-    id: "rem-midsem-reg",
-    type: "reminder",
-    title: "Mid-sem registration opens",
-    description: "Check EduPage for exam form window.",
-    dueAt: "2026-09-01T10:00:00+05:30",
-  },
-  {
-    id: "rem-c-peer",
-    type: "reminder",
-    title: "C Programming peer review session",
-    description: "Bring a printed copy of your latest assignment.",
-    dueAt: "2026-09-08T14:30:00+05:30",
-    courseCode: "26CSEC108",
-    courseName: "Programming in C",
   },
 ];
 
