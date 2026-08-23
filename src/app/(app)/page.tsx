@@ -74,8 +74,6 @@ export default async function DashboardPage() {
 
         <DueSoon />
 
-        <ProductExplainer />
-
         <SlimStats
           stats={{
             materials: stats.materials,
@@ -125,6 +123,10 @@ export default async function DashboardPage() {
           </div>
         ))}
       </section>
+
+      <div className="mt-6 sm:mt-8">
+        <ProductExplainer />
+      </div>
     </>
   );
 }
