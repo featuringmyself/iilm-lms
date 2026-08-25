@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 import {
   getEntryAtPeriod,
-  getNextClass,
   getSubjectTheme,
   resolveLocation,
   timeSlots,
@@ -15,9 +14,9 @@ type HighlightKind = "now" | "next" | null;
 
 function highlightFor(
   entry: ClassEntry,
-  next: NextClassResult
+  next: NextClassResult | null
 ): HighlightKind {
-  if (!next.classItem) return null;
+  if (!next?.classItem) return null;
   if (entry.id === next.classItem.entry.id) {
     return next.status === "in_progress" ? "now" : "next";
   }
@@ -106,7 +105,7 @@ function DayRow({
   day: Weekday;
   label: string;
   shortLabel: string;
-  next: NextClassResult;
+  next: NextClassResult | null;
   isActiveDay: boolean;
 }) {
   const cells: ReactNode[] = [];
@@ -159,9 +158,8 @@ function DayRow({
   );
 }
 
-export function TimetableGrid() {
-  const next = getNextClass();
-  const activeDay = next.classItem?.entry.day ?? null;
+export function TimetableGrid({ next }: { next: NextClassResult | null }) {
+  const activeDay = next?.classItem?.entry.day ?? null;
 
   return (
     <div className="-mx-3 overflow-x-auto overscroll-x-contain border-y border-border bg-card sm:mx-0 sm:rounded-lg sm:border">
