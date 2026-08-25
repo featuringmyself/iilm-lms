@@ -86,6 +86,7 @@ src/app/
   (app)/                 # Shell: sidebar + header
     page.tsx             # Dashboard
     schedule/            # Timetable, due-soon tasks, ICS
+    changelog/           # User-facing changelog
     [semester]/...      # Semester → course pages
   [semester]/[course]/[doc]/  # Document viewer (outside shell)
   api/upload/            # Material / note uploads
@@ -93,8 +94,20 @@ components/              # UI, dashboard, schedule, document viewers
 lib/
   content/               # Scan/list Blob + local content tree
   schedule/              # Timetable, next class, tasks, ICS
+  changelog.ts           # Changelog entries for /changelog
 public/content/          # Local/dev content tree (optional seed data)
 ```
+
+## Contributing
+
+PRs that change user-visible behavior should update the changelog.
+
+1. Edit `lib/changelog.ts` — add a new entry at the **top** (newest first), or append items to an existing entry when the change belongs to the same release theme.
+2. Prefer one entry per meaningful feature or fix theme; related commits can share an entry.
+3. Use `added` / `changed` / `fixed` for item kinds, and write copy for students (what changed), not commit titles.
+4. Keep the `/changelog` page accurate; do not dump every chore or refactor.
+
+Content uploads (materials / notes via the UI or sync) do not need a changelog entry.
 
 ## Agent notes
 
