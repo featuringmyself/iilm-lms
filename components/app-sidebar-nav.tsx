@@ -149,7 +149,7 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                           />
                           <span className="truncate">{course.name}</span>
                           <SidebarMenuBadge className="font-mono text-[10px] text-muted-foreground">
-                            {course.documents.length}
+                            {course.documents.length + course.notes.length}
                           </SidebarMenuBadge>
                         </SidebarMenuButton>
                         {isCourseActive && course.documents.length > 0 ? (

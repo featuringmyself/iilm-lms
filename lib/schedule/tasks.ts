@@ -9,7 +9,7 @@ export interface ScheduleTask {
   description?: string;
   /** ISO 8601 datetime (Asia/Kolkata wall time preferred) */
   dueAt: string;
-  /** Course code, e.g. 26SQSC103 */
+  /** Course code, e.g. 26SOSC103 */
   courseCode?: string;
   /** Course display name */
   courseName?: string;
@@ -18,14 +18,43 @@ export interface ScheduleTask {
 /** Homework & reminders for 1CSE3 · Odd semester 2026–27 */
 export const scheduleTasks: ScheduleTask[] = [
   {
-    id: "hw-comm-7cs-intro",
+    id: "hw-physics-notes-schrodinger",
     type: "homework",
-    title: "7 Cs & 40-second self-introduction",
+    title: "Notes up to Schrödinger wave equation",
     description:
-      "Prepare the 7 Cs of communication and record/deliver an introduction about yourself lasting at least 40 seconds.",
-    dueAt: "2026-08-24T14:30:00+05:30",
-    courseCode: "26CCSS105",
-    courseName: "Professional Communication for Engineers",
+      "Make notes covering all topics taught so far, up to the Schrödinger wave equation.",
+    dueAt: "2026-08-26T15:25:00+05:30",
+    courseCode: "26SOST101",
+    courseName: "Semiconductor and Quantum Physics",
+  },
+  {
+    id: "hw-prog-c-notes-algorithm",
+    type: "homework",
+    title: "Notes up to Algorithms",
+    description:
+      "Complete notes through the Algorithm topic. Refer to the uploaded PDF.",
+    dueAt: "2026-08-26T16:20:00+05:30",
+    courseCode: "26CSEC108",
+    courseName: "Programming in C",
+  },
+  {
+    id: "hw-cdt-complete-notes",
+    type: "homework",
+    title: "Complete all notes",
+    description: "Finish the full set of notes for Computational Design Thinking.",
+    dueAt: "2026-08-31T15:25:00+05:30",
+    courseCode: "26CSEC104",
+    courseName: "Computational Design Thinking",
+  },
+  {
+    id: "hw-maths-qb-sept1",
+    type: "homework",
+    title: "Practice + Question Bank",
+    description:
+      "Solve questions from topics covered in class so far, and complete the Question Bank (PDF will be shared by the CR).",
+    dueAt: "2026-09-01T15:25:00+05:30",
+    courseCode: "26SOSC103",
+    courseName: "Applied Calculus",
   },
 ];
 

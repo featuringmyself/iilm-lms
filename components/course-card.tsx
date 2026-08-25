@@ -15,7 +15,10 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
   const theme = getCourseTheme(course.slug);
   const Icon = theme.icon;
 
-  const typeCounts = course.documents.reduce<Record<string, number>>((acc, doc) => {
+  const noteCount = course.notes.length;
+  const typeCounts = [...course.documents, ...course.notes].reduce<
+    Record<string, number>
+  >((acc, doc) => {
     acc[doc.extension] = (acc[doc.extension] ?? 0) + 1;
     return acc;
   }, {});
@@ -53,6 +56,12 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
         <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
           {course.documents.length} material
           {course.documents.length === 1 ? "" : "s"}
+          {noteCount > 0 ? (
+            <>
+              <span className="mx-1.5 text-border">·</span>
+              {noteCount} note{noteCount === 1 ? "" : "s"}
+            </>
+          ) : null}
         </p>
         {Object.keys(typeCounts).length > 0 ? (
           <div className="flex flex-wrap justify-end gap-1">

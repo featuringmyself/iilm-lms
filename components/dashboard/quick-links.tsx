@@ -80,6 +80,11 @@ export function QuickLinks({ courses }: QuickLinksProps) {
                 <p className="truncate font-mono text-[10px] tabular-nums text-muted-foreground">
                   {course.documents.length} material
                   {course.documents.length === 1 ? "" : "s"}
+                  {course.notes.length > 0
+                    ? ` · ${course.notes.length} note${
+                        course.notes.length === 1 ? "" : "s"
+                      }`
+                    : ""}
                 </p>
               </div>
               <ArrowUpRight
