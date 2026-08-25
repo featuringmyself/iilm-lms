@@ -11,7 +11,6 @@ import {
 
 export const metadata: Metadata = {
   title: "Changelog · IILM LMS",
-  description: "Notable changes to the IILM LMS student app.",
 };
 
 const KIND_LABEL: Record<ChangelogKind, string> = {
@@ -34,48 +33,38 @@ export default function ChangelogPage() {
     <>
       <PageHeader
         title="Changelog"
-        description="Notable product changes, grouped by release theme — not every commit."
       />
 
-      <div className="max-w-2xl">
+      <div className="max-w-2xl space-y-0">
         {changelog.map((entry, index) => (
-          <div key={entry.id} id={entry.id}>
+          <section key={entry.id} id={entry.id}>
             {index > 0 ? <Separator className="my-6 sm:my-8" /> : null}
-            <article className="grid gap-3 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-6">
-              <time
-                dateTime={entry.date}
-                className="pt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground sm:text-right"
-              >
-                {formatChangelogDate(entry.date)}
-              </time>
-              <div className="min-w-0 space-y-3">
-                <div className="space-y-1">
-                  <h2 className="text-[15px] font-semibold tracking-tight text-foreground sm:text-base">
-                    {entry.title}
-                  </h2>
-                  <p className="text-[13px] leading-relaxed text-muted-foreground">
-                    {entry.summary}
-                  </p>
-                </div>
-                <ul className="space-y-2">
-                  {entry.items.map((item) => (
-                    <li
-                      key={`${entry.id}-${item.kind}-${item.text}`}
-                      className="flex items-start gap-2.5 text-[13px] leading-relaxed text-foreground/90"
-                    >
-                      <Badge
-                        variant={KIND_VARIANT[item.kind]}
-                        className="mt-0.5"
-                      >
-                        {KIND_LABEL[item.kind]}
-                      </Badge>
-                      <span>{item.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-          </div>
+            <time
+              dateTime={entry.date}
+              className="mb-2 block text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+            >
+              {formatChangelogDate(entry.date)}
+            </time>
+            <h2 className="text-[15px] font-semibold tracking-tight text-foreground sm:text-base">
+              {entry.title}
+            </h2>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              {entry.summary}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {entry.items.map((item) => (
+                <li
+                  key={`${entry.id}-${item.kind}-${item.text}`}
+                  className="flex items-start gap-2.5 text-[13px] leading-relaxed text-foreground/90"
+                >
+                  <Badge variant={KIND_VARIANT[item.kind]} className="mt-0.5">
+                    {KIND_LABEL[item.kind]}
+                  </Badge>
+                  <span>{item.text}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
       </div>
     </>
