@@ -7,7 +7,7 @@ Unofficial, student-led learning management system for IILM courses: browse seme
 - [Next.js](https://nextjs.org) 16 (App Router) + React 19
 - TypeScript, Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com)
 - [Bun](https://bun.sh) (`packageManager` in `package.json`)
-- [Vercel Blob](https://vercel.com/docs/vercel-blob) for durable content storage
+- [Vercel Blob](https://vercel.com/docs/vercel-blob) for instant upload staging (synced into `public/content/`)
 - [PostHog](https://posthog.com) analytics (production only)
 
 ## Getting started
@@ -27,6 +27,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `build` | `bun run build` | Production build |
 | `start` | `bun start` | Serve the production build |
 | `lint` | `bun run lint` | ESLint |
+| `sync:blob` | `bun run sync:blob` | Pull Blob → `public/content/`, then delete from Blob |
 
 ## Environment
 
@@ -38,7 +39,7 @@ Copy values into `.env.local` as needed. All env files are gitignored.
 | `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` | No | PostHog project token. Client init runs in **production** only (`instrumentation-client.ts`); local `bun dev` skips PostHog. |
 | `NEXT_PUBLIC_POSTHOG_HOST` | No | Used by the server-side PostHog client (e.g. `https://us.i.posthog.com`). Browser traffic is proxied via `/ingest` (see `next.config.ts`). |
 
-Without `BLOB_READ_WRITE_TOKEN`, uploads write to `public/content/` (fine for local dev, but **not durable** on Vercel serverless).
+Without `BLOB_READ_WRITE_TOKEN`, uploads write to `public/content/` (fine for local dev).
 
 Pull Vercel-linked env vars locally with:
 
@@ -46,27 +47,37 @@ Pull Vercel-linked env vars locally with:
 vercel env pull
 ```
 
-## Content storage (Vercel Blob)
+## Content storage
 
-Course materials and notes live in **Vercel Blob** (production) or under `public/content/` (local fallback). Layout:
+Course materials and notes are served from **`public/content/`** (committed and deployed). Uploads still go to **Vercel Blob** first so new files are visible immediately; periodically sync Blob down to `public/` and free Blob storage.
+
+Layout:
 
 ```
-content/{semesterSlug}/{courseSlug}/{filename}          # materials
-content/{semesterSlug}/{courseSlug}/notes/{filename}    # notes
+public/content/{SemesterFolder}/{CourseFolder}/{filename}          # materials
+public/content/{SemesterFolder}/{CourseFolder}/notes/{filename}    # notes
 ```
+
+Blob pathnames use URL slugs (`content/{semesterSlug}/{courseSlug}/...`) and map back onto the display-name folders above.
 
 ### Vercel setup
 
 1. In the project **Storage** tab, create a **Blob** store (public access).
 2. Connect it to Production / Preview (and Development if you want Blob locally).
 3. Vercel injects `BLOB_READ_WRITE_TOKEN`. Pull locally with `vercel env pull`.
-4. Redeploy. New uploads go to Blob; `publicPath` for Blob files is the public Blob URL, so PDF / PPTX / DOCX viewers keep working.
+4. Redeploy. New uploads go to Blob; the app merges Blob + local so unsynced uploads still appear until you run the sync.
 
-When the token is set, the app lists Blob under `content/` and still merges any remaining local `public/content` files so git-seeded materials stay visible until you migrate them into Blob.
+### Sync Blob → public (routine)
 
-### Migrate existing files
+Run locally when you want to reclaim Blob storage and make `public/content/` the source of truth:
 
-Upload via the UI, or use the [Vercel Blob CLI / SDK](https://vercel.com/docs/vercel-blob) to `put` existing `public/content/**` files using the slug-based pathname convention above.
+```bash
+bun run sync:blob -- --dry-run   # preview
+bun run sync:blob                # download + delete from Blob
+bun run sync:blob -- --keep-blob # download only, leave Blob copies
+```
+
+Then commit and deploy `public/content/` so production serves the local files. Upload via the UI is unchanged.
 
 ## Project structure
 

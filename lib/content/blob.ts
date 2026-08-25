@@ -1,5 +1,6 @@
 import {
   BlobNotFoundError,
+  del,
   head,
   list,
   put,
@@ -76,4 +77,11 @@ export async function putContentBlob(
     allowOverwrite: false,
     ...(contentType ? { contentType } : {}),
   });
+}
+
+/** Delete one or more blobs by URL or pathname. */
+export async function deleteContentBlobs(
+  urlOrPathname: string | string[]
+): Promise<void> {
+  await del(urlOrPathname);
 }

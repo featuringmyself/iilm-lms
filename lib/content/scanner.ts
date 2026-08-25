@@ -306,8 +306,8 @@ function mergeDocuments(
 
 /**
  * Merge Blob + local trees by semester/course slug.
- * Blob documents win on the same fileName (so uploads replace local listings).
- * Local display names are preferred when both sides exist.
+ * Local documents win on the same fileName (synced public/content is canonical).
+ * Blob-only files still appear so fresh uploads are visible before sync.
  */
 export function mergeContentTrees(
   blobTree: ContentTree,
@@ -357,13 +357,13 @@ export function mergeContentTrees(
 
       const slugSet = new Set<string>();
       localCourse.documents = mergeDocuments(
-        blobCourse.documents,
         localCourse.documents,
+        blobCourse.documents,
         slugSet
       );
       localCourse.notes = mergeDocuments(
-        blobCourse.notes,
         localCourse.notes,
+        blobCourse.notes,
         slugSet
       );
     }
@@ -380,9 +380,8 @@ export function mergeContentTrees(
 }
 
 /**
- * Prefer Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (merges with local
- * so git-seeded public/content still appears until migrated). Falls back to
- * a local public/content scan when the token is missing.
+ * Prefer local public/content when present; merge Blob so unsynced uploads
+ * still appear. Falls back to a local-only scan when the token is missing.
  */
 export async function scanContentTree(): Promise<ContentTree> {
   if (!isBlobConfigured()) {
