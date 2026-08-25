@@ -9,14 +9,11 @@ import {
 } from "lucide-react";
 
 import { useCompletedHomework } from "@/components/schedule/use-completed-homework";
+import { useNextClass } from "@/components/schedule/use-next-class";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimetableGrid } from "@/components/schedule/timetable-grid";
 import type { ScheduleTask } from "@/lib/schedule";
-import {
-  formatTaskDueDate,
-  getNextClass,
-  getTaskUrgency,
-} from "@/lib/schedule";
+import { formatTaskDueDate, getTaskUrgency } from "@/lib/schedule";
 import { cn } from "@/lib/utils";
 
 
@@ -251,9 +248,10 @@ export function ScheduleView({ homework, reminders }: ScheduleViewProps) {
   const upcomingReminderCount = reminders.filter(
     (t) => getTaskUrgency(t) !== "overdue"
   ).length;
-  const next = getNextClass();
-  const highlightNote =
-    next.status === "in_progress"
+  const next = useNextClass();
+  const highlightNote = !next
+    ? null
+    : next.status === "in_progress"
       ? "Now highlighted on the grid"
       : next.classItem
         ? next.status === "later"
@@ -290,7 +288,7 @@ export function ScheduleView({ homework, reminders }: ScheduleViewProps) {
       </TabsList>
 
       <TabsContent value="timetable" className="mt-0 outline-none">
-        {highlightNote ? (
+        {next && highlightNote ? (
           <p className="mb-3 text-[12px] text-muted-foreground sm:text-[13px]">
             <span className="font-mono tabular-nums text-foreground">
               {next.nowHm}
@@ -299,7 +297,7 @@ export function ScheduleView({ homework, reminders }: ScheduleViewProps) {
             {highlightNote}
           </p>
         ) : null}
-        <TimetableGrid />
+        <TimetableGrid next={next} />
       </TabsContent>
 
       <TabsContent value="homework" className="mt-0 outline-none">
