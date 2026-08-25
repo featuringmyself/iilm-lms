@@ -11,7 +11,6 @@ export const timetableMeta: TimetableMeta = {
   school: "School of Computer Science and Engineering",
   section: "1CSE3",
   defaultRoom: "Foundation Block 105",
-  campus: "Plot No. 16-18, Knowledge Park II, Greater Noida, Uttar Pradesh",
   validFrom: "2026-08-17",
   validTo: "2027-01-31",
   validFromLabel: "17/08/2026",
@@ -151,7 +150,7 @@ export const classEntries: ClassEntry[] = [
     endPeriod: 8,
     code: "26CSEC104",
     name: "Computational Design Thinking",
-    teachers: ["MS Upasna Malhotra"],
+    teachers: ["Ms. Upasna Malhotra"],
     colorKey: "csec104",
   },
   {
@@ -172,7 +171,7 @@ export const classEntries: ClassEntry[] = [
     endPeriod: 6,
     code: "26CSEC104",
     name: "Computational Design Thinking",
-    teachers: ["MS Upasna Malhotra"],
+    teachers: ["Ms. Upasna Malhotra"],
     colorKey: "csec104",
   },
   {

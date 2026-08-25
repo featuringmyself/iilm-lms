@@ -46,7 +46,6 @@ export interface TimetableMeta {
   school: string;
   section: string;
   defaultRoom: string;
-  campus: string;
   validFrom: string;
   validTo: string;
   validFromLabel: string;
