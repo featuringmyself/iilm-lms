@@ -24,7 +24,7 @@ function statusLabel(next: NextClassResult): string {
     case "upcoming":
       return "Next up";
     case "later":
-      return next.whenLabel ?? "Up next";
+      return "Up next";
     case "no_classes":
       return "No classes";
   }
