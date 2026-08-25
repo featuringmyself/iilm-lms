@@ -24,6 +24,23 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-08-25-installable-pwa",
+    date: "2026-08-25",
+    title: "Install to home screen",
+    summary:
+      "IILM LMS can be installed as an app from Chrome and other browsers, with a standalone window and an offline fallback page.",
+    items: [
+      {
+        kind: "added",
+        text: "Web app manifest, icons, and service worker so browsers can offer Install / Add to Home Screen.",
+      },
+      {
+        kind: "added",
+        text: "Offline fallback at /~offline when a navigation fails without a network.",
+      },
+    ],
+  },
+  {
     id: "2026-08-25-changelog-page",
     date: "2026-08-25",
     title: "Changelog page",

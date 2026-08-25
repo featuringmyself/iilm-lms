@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
+import { withSerwist } from "@serwist/turbopack";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   async rewrites() {
     return [
       {
@@ -23,11 +23,11 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'encrypted-tbn0.gstatic.com',
+        protocol: "https",
+        hostname: "encrypted-tbn0.gstatic.com",
       },
     ],
   },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
