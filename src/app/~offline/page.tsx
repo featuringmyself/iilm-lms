@@ -22,14 +22,14 @@ export default function OfflinePage() {
       />
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-16">
-        <div className="flex w-full max-w-[22rem] flex-col items-center text-center">
+        <div className="flex w-full max-w-88 flex-col items-center text-center">
           {/* Native img so the precached icon works without next/image in the SW fallback. */}
           <img
             src="/icons/icon-192.png"
             alt=""
             width={72}
             height={72}
-            className="size-[4.5rem] rounded-[1.05rem] shadow-sm"
+            className="size-18 rounded-[1.05rem] shadow-sm"
           />
 
           <p className="mt-6 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">
@@ -55,7 +55,7 @@ export default function OfflinePage() {
           <Button
             type="button"
             size="lg"
-            className="mt-8 min-w-[10.5rem]"
+            className="mt-8 min-w-42"
             onClick={() => window.location.assign("/")}
           >
             Try again
