@@ -35,12 +35,6 @@ export function RecentMaterials({
         <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
           Available materials
         </h2>
-        {notesCount > 0 ? (
-          <p className="inline-flex items-center gap-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">
-            <StickyNote className="size-3" strokeWidth={1.75} />
-            {notesCount} note{notesCount === 1 ? "" : "s"} in course folders
-          </p>
-        ) : null}
       </div>
 
       {materials.length === 0 ? (
