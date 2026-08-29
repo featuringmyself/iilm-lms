@@ -20,6 +20,8 @@ import { ALLOWED_TYPES_LABEL } from "@/lib/content/supported-extensions";
 interface CourseContentTabsProps {
   semesterSlug: string;
   courseSlug: string;
+  courseName: string;
+  semesterName: string;
   materials: Document[];
   notes: Document[];
   pyq: Document[];
@@ -56,6 +58,8 @@ function matchesQuery(doc: Document, query: string): boolean {
 export function CourseContentTabs({
   semesterSlug,
   courseSlug,
+  courseName,
+  semesterName,
   materials,
   notes,
   pyq,
@@ -197,6 +201,8 @@ export function CourseContentTabs({
             documents={tab === "materials" ? filteredDocs : materials}
             semesterSlug={semesterSlug}
             courseSlug={courseSlug}
+            courseName={courseName}
+            semesterName={semesterName}
             emptyTitle="No materials yet"
             emptyDescription="Drop a file here or use Upload — PDFs, presentations, documents, or images for lectures, readings, and assignments."
             emptyHint="Supported · PDF · PPTX · DOCX · Images"
@@ -210,6 +216,8 @@ export function CourseContentTabs({
               documents={tab === "notes" ? filteredDocs : notes}
               semesterSlug={semesterSlug}
               courseSlug={courseSlug}
+              courseName={courseName}
+              semesterName={semesterName}
               emptyTitle="No notes yet"
               emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
               emptyHint="Supported · PDF · PPTX · DOCX · Images"
@@ -224,6 +232,8 @@ export function CourseContentTabs({
               documents={tab === "pyq" ? filteredDocs : pyq}
               semesterSlug={semesterSlug}
               courseSlug={courseSlug}
+              courseName={courseName}
+              semesterName={semesterName}
               emptyTitle="No PYQ yet"
               emptyDescription="Drop a file here or use Upload — previous year questions and midterms stay separate from materials and notes."
               emptyHint="Supported · PDF · PPTX · DOCX · Images"

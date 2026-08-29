@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Download, Eye, FileText, ImageIcon, Presentation, Upload } from "lucide-react";
 
+import { AskAiButton } from "@/components/ask-ai-button";
 import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,8 @@ interface DocumentTableProps {
   documents: Document[];
   semesterSlug: string;
   courseSlug: string;
+  courseName: string;
+  semesterName: string;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyHint?: string;
@@ -80,12 +83,16 @@ function DocumentActions({
   isPdf,
   semesterSlug,
   courseSlug,
+  courseName,
+  semesterName,
 }: {
   doc: Document;
   viewHref: string;
   isPdf: boolean;
   semesterSlug: string;
   courseSlug: string;
+  courseName: string;
+  semesterName: string;
 }) {
   const shareUrl = getMaterialShareUrl(doc, semesterSlug, courseSlug);
 
@@ -112,10 +119,18 @@ function DocumentActions({
         <Download className="size-3.5" strokeWidth={1.75} />
         <span className="sr-only">Download</span>
       </Button>
+      <AskAiButton
+        documentName={doc.name}
+        fileUrl={doc.publicPath}
+        courseName={courseName}
+        semesterName={semesterName}
+        semesterSlug={semesterSlug}
+        courseSlug={courseSlug}
+      />
       <Button
         variant="outline"
         size="xs"
-        className="ml-1 hidden sm:inline-flex"
+        className="ml-0.5 hidden sm:inline-flex"
         nativeButton={false}
         render={isPdf ? <a href={viewHref} /> : <Link href={viewHref} />}
       >
@@ -129,6 +144,8 @@ export function DocumentTable({
   documents,
   semesterSlug,
   courseSlug,
+  courseName,
+  semesterName,
   emptyTitle = "No materials yet",
   emptyDescription = "Documents will appear here when added to this course folder.",
   emptyHint,
@@ -219,6 +236,8 @@ export function DocumentTable({
                   isPdf={isPdf}
                   semesterSlug={semesterSlug}
                   courseSlug={courseSlug}
+                  courseName={courseName}
+                  semesterName={semesterName}
                 />
               </div>
             </li>
@@ -304,6 +323,8 @@ export function DocumentTable({
                         isPdf={isPdf}
                         semesterSlug={semesterSlug}
                         courseSlug={courseSlug}
+                        courseName={courseName}
+                        semesterName={semesterName}
                       />
                     </TableCell>
                   </TableRow>

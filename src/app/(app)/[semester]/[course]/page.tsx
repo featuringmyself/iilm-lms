@@ -47,6 +47,8 @@ export default async function CoursePage({
       <CourseContentTabs
         semesterSlug={semester.slug}
         courseSlug={course.slug}
+        courseName={course.name}
+        semesterName={semester.displayName}
         materials={course.documents}
         notes={course.notes}
         pyq={course.pyq}
