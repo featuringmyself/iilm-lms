@@ -24,6 +24,19 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-08-29-drag-drop-upload",
+    date: "2026-08-29",
+    title: "Drag and drop upload",
+    summary:
+      "Drop files onto a course Materials, Notes, or PYQ list to upload into that folder — same rename step as the Upload button.",
+    items: [
+      {
+        kind: "added",
+        text: "Drag and drop files onto the active course tab to upload into that directory.",
+      },
+    ],
+  },
+  {
     id: "2026-08-29-pyq-section",
     date: "2026-08-29",
     title: "PYQ section",
