@@ -35,7 +35,7 @@ export default function ChangelogPage() {
     <>
       <PageHeader
         title="Changelog"
-        description="Notable product changes, grouped by release theme — not every commit."
+        description="Notable product changes, grouped by release theme."
       />
 
       <ol className="max-w-3xl">
