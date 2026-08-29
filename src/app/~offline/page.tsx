@@ -22,7 +22,7 @@ export default function OfflinePage() {
       />
 
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-16">
-        <div className="flex w-full max-w-88 flex-col items-center text-center">
+f        <div className="flex w-full max-w-88 flex-col items-center text-center">
           {/* Native img so the precached icon works without next/image in the SW fallback. */}
           <img
             src="/icons/icon-192.png"
