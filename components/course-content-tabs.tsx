@@ -219,13 +219,7 @@ export function CourseContentTabs({
           disabled={upload.uploading || upload.dialogOpen}
           onDropFiles={handleDropFiles}
         >
-          {/* keepMounted: inactive tabs stay in the HTML so crawlers/ChatGPT
-              can follow notes and PYQ file links, not only the default Materials tab. */}
-          <TabsContent
-            value="materials"
-            keepMounted
-            className="mt-0 outline-none"
-          >
+          <TabsContent value="materials" className="mt-0 outline-none">
             <DocumentTable
               documents={tab === "materials" ? filteredDocs : materials}
               semesterSlug={semesterSlug}
@@ -240,11 +234,7 @@ export function CourseContentTabs({
           </TabsContent>
 
           {showNotes ? (
-            <TabsContent
-              value="notes"
-              keepMounted
-              className="mt-0 outline-none"
-            >
+            <TabsContent value="notes" className="mt-0 outline-none">
               <DocumentTable
                 documents={tab === "notes" ? filteredDocs : notes}
                 semesterSlug={semesterSlug}
@@ -260,7 +250,7 @@ export function CourseContentTabs({
           ) : null}
 
           {showPyq ? (
-            <TabsContent value="pyq" keepMounted className="mt-0 outline-none">
+            <TabsContent value="pyq" className="mt-0 outline-none">
               <DocumentTable
                 documents={tab === "pyq" ? filteredDocs : pyq}
                 semesterSlug={semesterSlug}

@@ -40,7 +40,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "fixed",
-        text: "Ask AI can find PYQ and notes from the course folder URL — those files lived behind an unmounted tab (and a pyq/ subfolder), so only materials were linked in the page HTML.",
+        text: "Course pages expose notes and PYQ as real file links in the HTML, so Ask AI can open them from the course URL — not only materials from the default tab.",
       },
     ],
   },
