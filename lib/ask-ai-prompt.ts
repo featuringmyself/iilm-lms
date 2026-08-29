@@ -1,4 +1,6 @@
-const MAX_PROMPT_LENGTH = 1700;
+const MAX_PROMPT_LENGTH = 1900;
+/** Only truncate the student question when it alone exceeds this. */
+const MAX_QUESTION_CHARS = 800;
 
 const SHORTENED_NOTE =
   "(Question was shortened to fit the chat handoff limit.)";
@@ -39,31 +41,87 @@ const KIND_SECTION_LABEL: Record<AskAiFileKind, string> = {
   pyq: "Previous-year questions (PYQ)",
 };
 
-function buildPromptBody(params: {
-  fileName: string;
-  fileUrl: string;
-  courseName: string;
-  semesterName: string;
-  courseUrl: string;
-  question: string;
-}): string {
+type InstructionTier = "full" | "minimal" | "none";
+
+/**
+ * Keep the full trimmed question unless it alone exceeds MAX_QUESTION_CHARS.
+ * Never return an empty / ellipsis-only question.
+ */
+function clampStudentQuestion(question: string): string {
+  const trimmed = question.trim();
+  if (trimmed.length === 0) return trimmed;
+  if (trimmed.length <= MAX_QUESTION_CHARS) return trimmed;
+
+  const head = trimmed.slice(0, MAX_QUESTION_CHARS).trimEnd();
+  return `${head}\n…\n${SHORTENED_NOTE}`;
+}
+
+function courseHeader(
+  courseName: string,
+  semesterName: string,
+  courseUrl: string
+): string {
   return `You are a careful tutor for an IILM undergraduate student.
 
-Context
-- Course: ${params.courseName} (${params.semesterName})
-- Primary file: "${params.fileName}"
-- File URL: ${params.fileUrl}
-- Full course library (materials, notes, previous-year questions — open any of these if needed): ${params.courseUrl}
+Course: ${courseName} (${semesterName})
+Course library URL: ${courseUrl}`;
+}
 
-How to answer
-1. Prefer the primary file. If you can open/fetch it, ground your answer in that material and say when you used it.
-2. If the primary file is not enough or you cannot access it, open the course library URL and follow its file links (materials, notes, and PYQ under a pyq/ path — not the course folder root). Or tell the student which linked file to open next.
-3. If you still cannot verify something from those sources, say so clearly (e.g. "Not in the linked materials") instead of inventing lecture content, quotes, page numbers, or fake citations.
-4. Teach clearly: short sections, steps, and formulas when useful. For graded homework, give a hint or method first; provide a full worked solution only if they still need it.
-5. End with 1–3 follow-up study questions the student can try, tied to this course when possible.
+function fileHeader(
+  courseName: string,
+  semesterName: string,
+  fileName: string,
+  fileUrl: string,
+  courseUrl: string
+): string {
+  return `You are a careful tutor for an IILM undergraduate student.
 
-Student question:
-${params.question}`;
+Course: ${courseName} (${semesterName})
+Primary file: "${fileName}"
+File URL: ${fileUrl}
+Course library URL: ${courseUrl}`;
+}
+
+function howToAnswerCourse(
+  tier: InstructionTier,
+  urlsComplete: boolean
+): string {
+  if (tier === "none") return "";
+
+  const prefer = urlsComplete
+    ? "Prefer the linked materials above; ground answers in them when you can open them."
+    : "Prefer the listed files; open them via the course library URL.";
+
+  if (tier === "minimal") {
+    return `How to answer: ${prefer} Say when something is not in those sources. Teach in short steps; hint first on graded work.`;
+  }
+
+  const fallback = urlsComplete
+    ? "- If that is not enough, use the course library URL (materials, notes, PYQ under pyq/).\n"
+    : "";
+
+  return `How to answer
+- ${prefer}
+${fallback}- Do not invent lecture content, quotes, page numbers, or citations.
+- Teach in short steps; hint first on graded work. End with 1–3 follow-ups.`;
+}
+
+function howToAnswerFile(tier: InstructionTier): string {
+  if (tier === "none") return "";
+
+  if (tier === "minimal") {
+    return `How to answer: Prefer the primary file, then the course library URL. Say when something is not in those sources. Teach in short steps; hint first on graded work.`;
+  }
+
+  return `How to answer
+- Prefer the primary file; ground answers in it when you can open it.
+- Else use the course library URL (materials, notes, PYQ under pyq/).
+- Do not invent lecture content, quotes, page numbers, or citations.
+- Teach in short steps; hint first on graded work. End with 1–3 follow-ups.`;
+}
+
+function assembleParts(parts: string[]): string {
+  return parts.filter((part) => part.length > 0).join("\n\n");
 }
 
 function orderedCourseFiles(files: AskAiCourseFile[]): AskAiCourseFile[] {
@@ -133,7 +191,7 @@ function formatFilesSection(
   urlsOmitted: boolean
 ): string {
   if (orderedFiles.length === 0) {
-    return "(No files listed — use the course library URL above.)";
+    return "Files for this course:\n(No files listed — use the course library URL above.)";
   }
 
   const filesWithUrls = pickFilesWithUrls(orderedFiles, filesWithUrlCount);
@@ -158,7 +216,7 @@ function formatFilesSection(
     groups.push(`${KIND_SECTION_LABEL[kind]}:\n${lines.join("\n")}`);
   }
 
-  let section = groups.join("\n\n");
+  let section = `Files for this course:\n${groups.join("\n\n")}`;
 
   if (urlsOmitted) {
     section = `${section}\n${URLS_OMITTED_NOTE}`;
@@ -167,35 +225,9 @@ function formatFilesSection(
   return section;
 }
 
-function buildCoursePromptBody(params: {
-  courseName: string;
-  semesterName: string;
-  courseUrl: string;
-  filesSection: string;
-  question: string;
-}): string {
-  return `You are a careful tutor for an IILM undergraduate student.
-
-Context
-- Course: ${params.courseName} (${params.semesterName})
-- Course library URL: ${params.courseUrl}
-- Files for this course:
-${params.filesSection}
-
-How to answer
-1. Prefer the linked materials above. If you can open/fetch them, ground your answer in those files and say when you used them.
-2. If the listed files are not enough or you cannot access them, open the course library URL and follow its file links (materials, notes, and PYQ under a pyq/ path — not the course folder root). Or tell the student which linked file to open next.
-3. If you still cannot verify something from those sources, say so clearly (e.g. "Not in the linked materials") instead of inventing lecture content, quotes, page numbers, or fake citations.
-4. Teach clearly: short sections, steps, and formulas when useful. For graded homework, give a hint or method first; provide a full worked solution only if they still need it.
-5. End with 1–3 follow-up study questions the student can try, tied to this course when possible.
-
-Student question:
-${params.question}`;
-}
-
 /**
  * Builds a curated ChatGPT `?q=` prompt for a course file.
- * Soft-caps length by truncating only the student question when needed.
+ * Soft-caps by shrinking instructions first; only clamps the question at ~800 chars.
  */
 export function buildAskAiPrompt({
   fileName,
@@ -205,58 +237,39 @@ export function buildAskAiPrompt({
   courseUrl,
   question,
 }: BuildAskAiPromptInput): string {
-  const trimmedQuestion = question.trim();
-
-  const full = buildPromptBody({
-    fileName,
-    fileUrl,
+  const questionText = clampStudentQuestion(question);
+  const header = fileHeader(
     courseName,
     semesterName,
-    courseUrl,
-    question: trimmedQuestion,
-  });
+    fileName,
+    fileUrl,
+    courseUrl
+  );
+  const questionBlock = `Student question:\n${questionText}`;
 
-  if (full.length <= MAX_PROMPT_LENGTH) {
-    return full;
+  const tiers: InstructionTier[] = ["full", "minimal", "none"];
+  for (const tier of tiers) {
+    const candidate = assembleParts([
+      header,
+      questionBlock,
+      howToAnswerFile(tier),
+    ]);
+    if (candidate.length <= MAX_PROMPT_LENGTH) {
+      return candidate;
+    }
   }
 
-  const withEmptyQuestion = buildPromptBody({
-    fileName,
-    fileUrl,
-    courseName,
-    semesterName,
-    courseUrl,
-    question: "",
-  });
-
-  // Reserve room for ellipsis + shortened note under the truncated question.
-  const overhead = `\n…\n${SHORTENED_NOTE}`.length;
-  const available = MAX_PROMPT_LENGTH - withEmptyQuestion.length - overhead;
-
-  if (available <= 0) {
-    // Extremely long URLs/names: keep instructions + URLs, drop the question body.
-    return `${withEmptyQuestion.trimEnd()}\n…\n${SHORTENED_NOTE}`.slice(
-      0,
-      MAX_PROMPT_LENGTH
-    );
-  }
-
-  const truncatedQuestion = trimmedQuestion.slice(0, available).trimEnd();
-
-  return buildPromptBody({
-    fileName,
-    fileUrl,
-    courseName,
-    semesterName,
-    courseUrl,
-    question: `${truncatedQuestion}\n…\n${SHORTENED_NOTE}`,
-  });
+  // Prefer keeping the question + URLs over the soft cap rather than gutting it.
+  return assembleParts([header, questionBlock]);
 }
 
 /**
  * Builds a curated ChatGPT `?q=` prompt for a whole course (all files).
- * Soft-caps length by omitting file URLs first, then truncating the question —
- * never by dropping file names.
+ *
+ * Pack priority (never gut the question; always keep file names):
+ * a/b/c header + full question + all names, then d URLs, e omit-note, f how-to.
+ * Over budget: drop URLs first, then shrink/drop how-to — never replace the
+ * question with "…". Question alone is only clamped at ~800 chars.
  */
 export function buildCourseAskAiPrompt({
   courseName,
@@ -265,50 +278,35 @@ export function buildCourseAskAiPrompt({
   files,
   question,
 }: BuildCourseAskAiPromptInput): string {
-  const trimmedQuestion = question.trim();
+  const questionText = clampStudentQuestion(question);
   const ordered = orderedCourseFiles(files);
   const totalFiles = ordered.length;
-  const questionOverhead = `\n…\n${SHORTENED_NOTE}`.length;
+  const header = courseHeader(courseName, semesterName, courseUrl);
+  const questionBlock = `Student question:\n${questionText}`;
 
-  function promptWith(urlCount: number, questionText: string): string {
+  function build(urlCount: number, tier: InstructionTier): string {
+    const urlsComplete = totalFiles === 0 || urlCount >= totalFiles;
     const urlsOmitted = totalFiles > 0 && urlCount < totalFiles;
-    return buildCoursePromptBody({
-      courseName,
-      semesterName,
-      courseUrl,
-      filesSection: formatFilesSection(ordered, urlCount, urlsOmitted),
-      question: questionText,
-    });
+    return assembleParts([
+      header,
+      questionBlock,
+      formatFilesSection(ordered, urlCount, urlsOmitted),
+      howToAnswerCourse(tier, urlsComplete),
+    ]);
   }
 
-  // Prefer the full question; drop URLs until it fits (all names always stay).
-  for (let urlCount = totalFiles; urlCount >= 0; urlCount -= 1) {
-    const candidate = promptWith(urlCount, trimmedQuestion);
-    if (candidate.length <= MAX_PROMPT_LENGTH) {
-      return candidate;
+  const tiers: InstructionTier[] = ["full", "minimal", "none"];
+
+  // Drop URLs first while keeping the current how-to tier; only then shrink how-to.
+  for (const tier of tiers) {
+    for (let urlCount = totalFiles; urlCount >= 0; urlCount -= 1) {
+      const candidate = build(urlCount, tier);
+      if (candidate.length <= MAX_PROMPT_LENGTH) {
+        return candidate;
+      }
     }
   }
 
-  // Question still overflows — keep as many URLs as fit with a truncated question.
-  for (let urlCount = totalFiles; urlCount >= 0; urlCount -= 1) {
-    const withEmptyQuestion = promptWith(urlCount, "");
-    const available =
-      MAX_PROMPT_LENGTH - withEmptyQuestion.length - questionOverhead;
-
-    if (available <= 0) continue;
-
-    const truncatedQuestion = trimmedQuestion.slice(0, available).trimEnd();
-    const candidate = promptWith(
-      urlCount,
-      `${truncatedQuestion}\n…\n${SHORTENED_NOTE}`
-    );
-
-    if (candidate.length <= MAX_PROMPT_LENGTH) {
-      return candidate;
-    }
-  }
-
-  // Names secured; drop the question body. Do not slice names to force the soft cap.
-  const fallback = promptWith(0, "");
-  return `${fallback.trimEnd()}\n…\n${SHORTENED_NOTE}`;
+  // Soft-cap overflow from huge name lists: keep question + names, never "…".
+  return build(0, "none");
 }

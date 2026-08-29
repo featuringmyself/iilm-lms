@@ -40,7 +40,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "fixed",
-        text: "Course pages expose notes and PYQ as real file links in the HTML, so Ask AI can open them from the course URL — not only materials from the default tab.",
+        text: "Course pages include an “All course files” list with direct links to materials, notes, and PYQ, so Ask AI can open those files from the course URL — not only the default Materials tab.",
       },
     ],
   },

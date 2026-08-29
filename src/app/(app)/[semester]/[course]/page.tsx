@@ -1,48 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { CourseContentTabs } from "@/components/course-content-tabs";
+import { CourseFileIndex } from "@/components/course-file-index";
 import { PageHeader } from "@/components/page-header";
-import {
-  getContentTree,
-  getCourse,
-  getSemester,
-  type Document,
-} from "@/lib/content";
-
-function CourseFileIndex({
-  materials,
-  notes,
-  pyq,
-}: {
-  materials: Document[];
-  notes: Document[];
-  pyq: Document[];
-}) {
-  const sections = [
-    { label: "Materials", docs: materials },
-    { label: "Notes", docs: notes },
-    { label: "Previous-year questions (PYQ)", docs: pyq },
-  ].filter((section) => section.docs.length > 0);
-
-  if (sections.length === 0) return null;
-
-  return (
-    <nav aria-label="All course files" className="sr-only">
-      {sections.map((section) => (
-        <section key={section.label}>
-          <h2>{section.label}</h2>
-          <ul>
-            {section.docs.map((doc) => (
-              <li key={doc.publicPath}>
-                <a href={doc.publicPath}>{doc.name}</a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </nav>
-  );
-}
+import { getContentTree, getCourse, getSemester } from "@/lib/content";
 
 export async function generateStaticParams() {
   const params: Array<{ semester: string; course: string }> = [];
