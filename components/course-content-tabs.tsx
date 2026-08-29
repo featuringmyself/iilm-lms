@@ -4,9 +4,16 @@ import { useState } from "react";
 import posthog from "posthog-js";
 
 import { DocumentTable } from "@/components/document-table";
-import { UploadFileButton, type UploadKind } from "@/components/upload-file-button";
+import { FileDropZone } from "@/components/file-drop-zone";
+import { UploadFileButton } from "@/components/upload-file-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  pickSupportedUploadFile,
+  useCourseFileUpload,
+  type UploadKind,
+} from "@/hooks/use-course-file-upload";
 import type { Document } from "@/lib/content";
+import { ALLOWED_TYPES_LABEL } from "@/lib/content/supported-extensions";
 
 interface CourseContentTabsProps {
   semesterSlug: string;
@@ -30,6 +37,33 @@ export function CourseContentTabs({
   notes,
 }: CourseContentTabsProps) {
   const [tab, setTab] = useState<UploadKind>("materials");
+  const [dropError, setDropError] = useState<string | null>(null);
+
+  const existingFileNames =
+    tab === "materials"
+      ? materials.map((doc) => doc.fileName)
+      : notes.map((doc) => doc.fileName);
+
+  const upload = useCourseFileUpload({
+    semesterSlug,
+    courseSlug,
+    kind: tab,
+    existingFileNames,
+    existingFileNamesByKind: {
+      materials: materials.map((doc) => doc.fileName),
+      notes: notes.map((doc) => doc.fileName),
+    },
+  });
+
+  function handleDropFiles(files: FileList) {
+    const file = pickSupportedUploadFile(files);
+    if (!file) {
+      setDropError(`Unsupported file type. Allowed: ${ALLOWED_TYPES_LABEL}`);
+      return;
+    }
+    setDropError(null);
+    upload.offerFile(file);
+  }
 
   return (
     <Tabs
@@ -41,6 +75,7 @@ export function CourseContentTabs({
             semester_slug: semesterSlug,
             course_slug: courseSlug,
           });
+          setDropError(null);
           setTab(value);
         }
       }}
@@ -64,40 +99,42 @@ export function CourseContentTabs({
           </TabsTrigger>
         </TabsList>
 
-        <UploadFileButton
-          semesterSlug={semesterSlug}
-          courseSlug={courseSlug}
-          kind={tab}
-          existingFileNames={
-            tab === "materials"
-              ? materials.map((doc) => doc.fileName)
-              : notes.map((doc) => doc.fileName)
-          }
-          className="w-full sm:w-auto"
-        />
+        <UploadFileButton upload={upload} className="w-full sm:w-auto" />
       </div>
 
-      <TabsContent value="materials" className="mt-0 outline-none">
-        <DocumentTable
-          documents={materials}
-          semesterSlug={semesterSlug}
-          courseSlug={courseSlug}
-          emptyTitle="No materials yet"
-          emptyDescription="Upload PDFs, PPTX, or DOCX files for lectures, readings, and assignments."
-          emptyHint="Supported · PDF · PPTX · DOCX"
-        />
-      </TabsContent>
+      {dropError ? (
+        <p className="text-[12px] text-destructive" role="alert">
+          {dropError}
+        </p>
+      ) : null}
 
-      <TabsContent value="notes" className="mt-0 outline-none">
-        <DocumentTable
-          documents={notes}
-          semesterSlug={semesterSlug}
-          courseSlug={courseSlug}
-          emptyTitle="No notes yet"
-          emptyDescription="Keep personal or class notes here, separate from course materials."
-          emptyHint="Supported · PDF · PPTX · DOCX"
-        />
-      </TabsContent>
+      <FileDropZone
+        label={tab === "notes" ? "notes" : "materials"}
+        disabled={upload.uploading || upload.dialogOpen}
+        onDropFiles={handleDropFiles}
+      >
+        <TabsContent value="materials" className="mt-0 outline-none">
+          <DocumentTable
+            documents={materials}
+            semesterSlug={semesterSlug}
+            courseSlug={courseSlug}
+            emptyTitle="No materials yet"
+            emptyDescription="Drop a file here or use Upload — PDFs, presentations, documents, or images for lectures, readings, and assignments."
+            emptyHint="Supported · PDF · PPTX · DOCX · Images"
+          />
+        </TabsContent>
+
+        <TabsContent value="notes" className="mt-0 outline-none">
+          <DocumentTable
+            documents={notes}
+            semesterSlug={semesterSlug}
+            courseSlug={courseSlug}
+            emptyTitle="No notes yet"
+            emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
+            emptyHint="Supported · PDF · PPTX · DOCX · Images"
+          />
+        </TabsContent>
+      </FileDropZone>
     </Tabs>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, Eye, FileText, Presentation, Upload } from "lucide-react";
+import { Download, Eye, FileText, ImageIcon, Presentation, Upload } from "lucide-react";
 
 import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Document } from "@/lib/content";
+import { isImageExtension } from "@/lib/content/supported-extensions";
 import { getFileTypeBadge } from "@/lib/course-themes";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,14 @@ function FileIcon({ extension }: { extension: Document["extension"] }) {
     return (
       <FileText
         className="size-3.5 text-blue-700 dark:text-neutral-400"
+        strokeWidth={1.75}
+      />
+    );
+  }
+  if (isImageExtension(extension)) {
+    return (
+      <ImageIcon
+        className="size-3.5 text-teal-700 dark:text-neutral-400"
         strokeWidth={1.75}
       />
     );

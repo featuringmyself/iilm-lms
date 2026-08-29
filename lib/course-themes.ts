@@ -9,6 +9,8 @@ import {
   Sigma,
 } from "lucide-react";
 
+import { isImageExtension } from "@/lib/content/supported-extensions";
+
 export interface CourseTheme {
   icon: LucideIcon;
   iconBg: string;
@@ -82,6 +84,12 @@ export function getFileTypeBadge(extension: string): { label: string; className:
         className: `bg-blue-50 text-blue-700 ${darkBadge}`,
       };
     default:
+      if (isImageExtension(extension)) {
+        return {
+          label: extension.toUpperCase(),
+          className: `bg-teal-50 text-teal-700 ${darkBadge}`,
+        };
+      }
       return {
         label: extension.toUpperCase(),
         className: "bg-muted text-muted-foreground",

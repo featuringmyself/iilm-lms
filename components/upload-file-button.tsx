@@ -1,8 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,188 +12,47 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  sanitizeFilename,
-  splitFilename,
-} from "@/lib/content/sanitize-filename";
-import posthog from "posthog-js";
-
+import { ACCEPT_FILE_TYPES } from "@/lib/content/supported-extensions";
 import { cn } from "@/lib/utils";
+import {
+  useCourseFileUpload,
+  type UploadKind,
+} from "@/hooks/use-course-file-upload";
 
-export type UploadKind = "materials" | "notes";
-
-const NAME_COLLISION_ERROR =
-  "A file with this name already exists. Choose a different name.";
-
-/** Ignore dismiss events briefly after the native file picker closes. */
-const FILE_PICKER_DISMISS_GUARD_MS = 600;
+export type { UploadKind };
+export type CourseFileUpload = ReturnType<typeof useCourseFileUpload>;
 
 interface UploadFileButtonProps {
-  semesterSlug: string;
-  courseSlug: string;
-  /** Where the file is stored: course root (materials) or notes/ subfolder. */
-  kind?: UploadKind;
-  /** Filenames already present in the target folder (materials or notes). */
-  existingFileNames?: string[];
+  upload: CourseFileUpload;
   className?: string;
 }
 
-const ACCEPT = ".pdf,.pptx,.docx";
-
-export function UploadFileButton({
-  semesterSlug,
-  courseSlug,
-  kind = "materials",
-  existingFileNames = [],
-  className,
-}: UploadFileButtonProps) {
-  const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const filenameInputRef = useRef<HTMLInputElement>(null);
-  const ignoreCloseUntilRef = useRef(0);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [stem, setStem] = useState("");
-  const [extension, setExtension] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function resetPending() {
-    setPendingFile(null);
-    setStem("");
-    setExtension("");
-    setError(null);
-  }
-
-  function showNameError(message: string) {
-    setError(message);
-    requestAnimationFrame(() => filenameInputRef.current?.focus());
-  }
-
-  function isNameTaken(name: string): boolean {
-    return existingFileNames.includes(name);
-  }
-
-  function openRenameDialog() {
-    ignoreCloseUntilRef.current = Date.now() + FILE_PICKER_DISMISS_GUARD_MS;
-    // Defer until after the native file picker finishes and its dismiss events settle.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setDialogOpen(true);
-      });
-    });
-  }
-
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) return;
-
-    const parts = splitFilename(file.name);
-    setPendingFile(file);
-    setStem(parts.stem);
-    setExtension(parts.extension.toLowerCase());
-    setError(null);
-    openRenameDialog();
-  }
-
-  function handleDialogOpenChange(open: boolean) {
-    if (uploading) return;
-    if (!open && Date.now() < ignoreCloseUntilRef.current) return;
-    setDialogOpen(open);
-    if (!open) resetPending();
-  }
-
-  async function handleConfirmUpload() {
-    if (!pendingFile) return;
-
-    const proposedName = `${stem.trim()}${extension}`;
-    const safeName = sanitizeFilename(proposedName);
-
-    if (!safeName) {
-      showNameError("Invalid filename. Allowed types: .pdf, .pptx, .docx");
-      return;
-    }
-
-    if (isNameTaken(safeName)) {
-      showNameError(NAME_COLLISION_ERROR);
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-
-    const renamedFile = new File([pendingFile], safeName, {
-      type: pendingFile.type,
-      lastModified: pendingFile.lastModified,
-    });
-
-    const formData = new FormData();
-    formData.append("file", renamedFile);
-    formData.append("fileName", safeName);
-    formData.append("semesterSlug", semesterSlug);
-    formData.append("courseSlug", courseSlug);
-    formData.append("kind", kind);
-
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = (await response.json()) as { error?: string; success?: boolean };
-
-      if (!response.ok) {
-        posthog.capture("file_upload_failed", {
-          file_extension: extension,
-          file_kind: kind,
-          semester_slug: semesterSlug,
-          course_slug: courseSlug,
-          status_code: response.status,
-        });
-        if (response.status === 409) {
-          showNameError(data.error ?? NAME_COLLISION_ERROR);
-        } else {
-          showNameError(data.error ?? "Upload failed. Please try again.");
-        }
-        return;
-      }
-
-      posthog.capture("file_uploaded", {
-        file_extension: extension,
-        file_kind: kind,
-        semester_slug: semesterSlug,
-        course_slug: courseSlug,
-      });
-      setDialogOpen(false);
-      resetPending();
-      router.refresh();
-    } catch {
-      posthog.capture("file_upload_failed", {
-        file_extension: extension,
-        file_kind: kind,
-        semester_slug: semesterSlug,
-        course_slug: courseSlug,
-        status_code: 0,
-      });
-      showNameError("Upload failed. Please try again.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  const label = kind === "notes" ? "Upload note" : "Upload file";
-  const previewName = `${stem.trim() || "untitled"}${extension}`;
-  const destination =
-    kind === "notes" ? "this course's notes" : "this course's materials";
+export function UploadFileButton({ upload, className }: UploadFileButtonProps) {
+  const {
+    inputRef,
+    filenameInputRef,
+    stem,
+    setStem,
+    extension,
+    dialogOpen,
+    uploading,
+    error,
+    setError,
+    previewName,
+    destination,
+    label,
+    openPicker,
+    handleFileChange,
+    handleDialogOpenChange,
+    handleConfirmUpload,
+  } = upload;
 
   return (
     <div className={cn("flex flex-col items-stretch gap-1.5 sm:items-end", className)}>
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={ACCEPT_FILE_TYPES}
         className="sr-only"
         disabled={uploading}
         onChange={handleFileChange}
@@ -206,7 +63,7 @@ export function UploadFileButton({
         size="sm"
         className="h-10 w-full justify-center sm:h-8 sm:w-auto"
         disabled={uploading}
-        onClick={() => inputRef.current?.click()}
+        onClick={openPicker}
       >
         {uploading ? (
           <Loader2 className="size-4 animate-spin" />
@@ -254,7 +111,9 @@ export function UploadFileButton({
                 enterKeyHint="done"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={
-                  error ? "upload-filename-error upload-filename-preview" : "upload-filename-preview"
+                  error
+                    ? "upload-filename-error upload-filename-preview"
+                    : "upload-filename-preview"
                 }
                 className="h-11 rounded-r-none border-r-0 text-base sm:h-9 sm:text-sm"
                 onChange={(event) => {

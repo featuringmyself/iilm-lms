@@ -1,5 +1,5 @@
 import path from "path";
 
-export const CONTENT_DIR = path.join(process.cwd(), "public/content");
+export { SUPPORTED_EXTENSIONS } from "./supported-extensions";
 
-export const SUPPORTED_EXTENSIONS = new Set(["pdf", "pptx", "docx"]);
+export const CONTENT_DIR = path.join(process.cwd(), "public/content");

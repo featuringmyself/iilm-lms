@@ -1,4 +1,4 @@
-const ALLOWED_EXTENSIONS = new Set(["pdf", "pptx", "docx"]);
+import { SUPPORTED_EXTENSIONS } from "./supported-extensions";
 
 function basename(filename: string): string {
   return filename.replace(/^.*[/\\]/, "");
@@ -25,7 +25,7 @@ export function sanitizeFilename(filename: string): string | null {
   if (!sanitized) return null;
 
   const ext = extname(sanitized).slice(1).toLowerCase();
-  if (!ALLOWED_EXTENSIONS.has(ext)) return null;
+  if (!SUPPORTED_EXTENSIONS.has(ext)) return null;
 
   return sanitized;
 }

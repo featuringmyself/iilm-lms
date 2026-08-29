@@ -24,6 +24,23 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-08-29-image-uploads",
+    date: "2026-08-29",
+    title: "Image uploads",
+    summary:
+      "Course materials and notes can include PNG, JPEG, GIF, WebP, and AVIF images, with in-browser preview.",
+    items: [
+      {
+        kind: "added",
+        text: "Upload PNG, JPEG, GIF, WebP, and AVIF images as materials or notes.",
+      },
+      {
+        kind: "added",
+        text: "In-browser image preview with the same toolbar as other documents.",
+      },
+    ],
+  },
+  {
     id: "2026-08-25-installable-pwa",
     date: "2026-08-25",
     title: "Install to home screen",

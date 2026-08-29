@@ -10,6 +10,7 @@ export type {
   Semester,
 } from "./types";
 export { formatSemesterName, slugify } from "./slug";
+export { isImageExtension } from "./supported-extensions";
 export {
   CONTENT_DIR,
   getCourseDiskPath,

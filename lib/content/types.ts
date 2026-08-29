@@ -1,4 +1,6 @@
-export type FileExtension = "pdf" | "pptx" | "docx" | "other";
+import type { SupportedExtension } from "./supported-extensions";
+
+export type FileExtension = SupportedExtension | "other";
 
 export interface Document {
   slug: string;
@@ -13,7 +15,7 @@ export interface Document {
 export interface Course {
   slug: string;
   name: string;
-  /** Materials in the course folder root (pdf/pptx/docx). */
+  /** Materials in the course folder root (documents and images). */
   documents: Document[];
   /** Notes stored under `{course}/notes/`. */
   notes: Document[];

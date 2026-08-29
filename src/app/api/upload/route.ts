@@ -17,6 +17,11 @@ import {
   isPathWithinContentDir,
   sanitizeFilename,
 } from "@/lib/content/paths";
+import { getExtension } from "@/lib/content/slug";
+import {
+  ALLOWED_TYPES_LABEL,
+  contentTypeForExtension,
+} from "@/lib/content/supported-extensions";
 
 export type UploadKind = "materials" | "notes";
 
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
     const safeName = sanitizeFilename(requestedName);
     if (!safeName) {
       return NextResponse.json(
-        { error: "Unsupported file type. Allowed: .pdf, .pptx, .docx" },
+        { error: `Unsupported file type. Allowed: ${ALLOWED_TYPES_LABEL}` },
         { status: 400 }
       );
     }
@@ -90,7 +95,9 @@ export async function POST(request: Request) {
       }
 
       const buffer = Buffer.from(await file.arrayBuffer());
-      await putContentBlob(pathname, buffer, file.type || undefined);
+      const contentType =
+        file.type || contentTypeForExtension(getExtension(safeName));
+      await putContentBlob(pathname, buffer, contentType);
 
       revalidatePath(`/${semesterSlug}/${courseSlug}`);
       revalidatePath(`/${semesterSlug}`);

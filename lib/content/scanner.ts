@@ -17,7 +17,7 @@ const NOTES_DIR_NAME = "notes";
 const BLOB_CONTENT_PREFIX = "content/";
 
 function toFileExtension(ext: string): FileExtension {
-  if (ext === "pdf" || ext === "pptx" || ext === "docx") return ext;
+  if (SUPPORTED_EXTENSIONS.has(ext)) return ext as FileExtension;
   return "other";
 }
 

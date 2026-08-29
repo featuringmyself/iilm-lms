@@ -1,6 +1,8 @@
 import type { Document } from "@/lib/content";
+import { isImageExtension } from "@/lib/content/supported-extensions";
 
 import { DocxViewer } from "./docx-viewer";
+import { ImageViewer } from "./image-viewer";
 import { PptxViewer } from "./pptx-viewer";
 
 interface DocumentViewerProps {
@@ -8,6 +10,12 @@ interface DocumentViewerProps {
 }
 
 export function DocumentViewer({ document }: DocumentViewerProps) {
+  if (isImageExtension(document.extension)) {
+    return (
+      <ImageViewer publicPath={document.publicPath} name={document.name} />
+    );
+  }
+
   switch (document.extension) {
     case "docx":
       return <DocxViewer publicPath={document.publicPath} />;

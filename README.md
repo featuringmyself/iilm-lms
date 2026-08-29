@@ -1,6 +1,6 @@
 # IILM LMS
 
-Unofficial, student-led learning management system for IILM courses: browse semester/course materials and notes, view PDF / PPTX / DOCX in-browser, check the class schedule, and contribute uploads.
+Unofficial, student-led learning management system for IILM courses: browse semester/course materials and notes, view PDF / PPTX / DOCX / images in-browser, check the class schedule, and contribute uploads.
 
 ## Stack
 
