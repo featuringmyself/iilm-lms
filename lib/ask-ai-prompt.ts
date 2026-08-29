@@ -6,7 +6,7 @@ const SHORTENED_NOTE =
   "(Question was shortened to fit the chat handoff limit.)";
 
 const URLS_OMITTED_NOTE =
-  "(URLs omitted for length — open the course library URL above for every file.)";
+  "(Some material URLs omitted for length — open those from the course library Materials tab. Notes/PYQ keep direct links above when present.)";
 
 export type AskAiFileKind = "material" | "note" | "pyq";
 
@@ -33,7 +33,14 @@ export interface BuildCourseAskAiPromptInput {
   question: string;
 }
 
+/** Display order in the prompt. */
 const KIND_SECTION_ORDER: AskAiFileKind[] = ["material", "note", "pyq"];
+
+/**
+ * URL budget order: notes/PYQ first — they are not in the default course-page
+ * HTML (Materials tab only). Materials can still be opened from that page.
+ */
+const URL_PRIORITY_ORDER: AskAiFileKind[] = ["pyq", "note", "material"];
 
 const KIND_SECTION_LABEL: Record<AskAiFileKind, string> = {
   material: "Materials",
@@ -89,20 +96,16 @@ function howToAnswerCourse(
   if (tier === "none") return "";
 
   const prefer = urlsComplete
-    ? "Prefer the linked materials above; ground answers in them when you can open them."
-    : "Prefer the listed files; open them via the course library URL.";
+    ? "Prefer the linked files above; ground answers in them when you can open them."
+    : "Prefer files that have URLs above. Materials without a URL are on the course library Materials tab.";
 
   if (tier === "minimal") {
     return `How to answer: ${prefer} Say when something is not in those sources. Teach in short steps; hint first on graded work.`;
   }
 
-  const fallback = urlsComplete
-    ? "- If that is not enough, use the course library URL (materials, notes, PYQ under pyq/).\n"
-    : "";
-
   return `How to answer
 - ${prefer}
-${fallback}- Do not invent lecture content, quotes, page numbers, or citations.
+- Do not invent lecture content, quotes, page numbers, or citations.
 - Teach in short steps; hint first on graded work. End with 1–3 follow-ups.`;
 }
 
@@ -110,12 +113,12 @@ function howToAnswerFile(tier: InstructionTier): string {
   if (tier === "none") return "";
 
   if (tier === "minimal") {
-    return `How to answer: Prefer the primary file, then the course library URL. Say when something is not in those sources. Teach in short steps; hint first on graded work.`;
+    return `How to answer: Prefer the primary file, then other links on the course library page. Say when something is not in those sources. Teach in short steps; hint first on graded work.`;
   }
 
   return `How to answer
 - Prefer the primary file; ground answers in it when you can open it.
-- Else use the course library URL (materials, notes, PYQ under pyq/).
+- Else use other file links on the course library page (Materials tab lists course materials).
 - Do not invent lecture content, quotes, page numbers, or citations.
 - Teach in short steps; hint first on graded work. End with 1–3 follow-ups.`;
 }
@@ -138,8 +141,8 @@ function formatFileLine(file: AskAiCourseFile, withUrl: boolean): string {
 }
 
 /**
- * When only some URLs fit, spread them across materials, notes, and PYQ
- * instead of filling materials first and dropping PYQ.
+ * Prefer notes/PYQ URLs when the budget is tight — those files are not linked
+ * on the default course-page Materials tab; materials still are.
  */
 function pickFilesWithUrls(
   orderedFiles: AskAiCourseFile[],
@@ -157,25 +160,11 @@ function pickFilesWithUrls(
     byKind[file.kind].push(file);
   }
 
-  const nextIndex: Record<AskAiFileKind, number> = {
-    material: 0,
-    note: 0,
-    pyq: 0,
-  };
-
-  while (withUrls.size < urlCount) {
-    let added = false;
-    for (const kind of KIND_SECTION_ORDER) {
-      if (withUrls.size >= urlCount) break;
-      const list = byKind[kind];
-      const index = nextIndex[kind];
-      if (index < list.length) {
-        withUrls.add(list[index]);
-        nextIndex[kind] = index + 1;
-        added = true;
-      }
+  for (const kind of URL_PRIORITY_ORDER) {
+    for (const file of byKind[kind]) {
+      if (withUrls.size >= urlCount) return withUrls;
+      withUrls.add(file);
     }
-    if (!added) break;
   }
 
   return withUrls;
@@ -183,7 +172,7 @@ function pickFilesWithUrls(
 
 /**
  * Lists every file name (grouped by kind). Up to `filesWithUrlCount` files
- * also get absolute URLs, spread across kinds so PYQ is not dropped first.
+ * also get absolute URLs — notes/PYQ before materials when space is limited.
  */
 function formatFilesSection(
   orderedFiles: AskAiCourseFile[],

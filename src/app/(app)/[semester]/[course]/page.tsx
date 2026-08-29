@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
 import { CourseContentTabs } from "@/components/course-content-tabs";
-import { CourseFileIndex } from "@/components/course-file-index";
 import { PageHeader } from "@/components/page-header";
 import { getContentTree, getCourse, getSemester } from "@/lib/content";
 
@@ -44,11 +43,6 @@ export default async function CoursePage({
       <PageHeader
         title={course.name}
         description={descriptionParts.join(" · ")}
-      />
-      <CourseFileIndex
-        materials={course.documents}
-        notes={course.notes}
-        pyq={course.pyq}
       />
       <CourseContentTabs
         semesterSlug={semester.slug}

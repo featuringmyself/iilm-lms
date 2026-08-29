@@ -40,7 +40,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "fixed",
-        text: "Course pages include an “All course files” list with direct links to materials, notes, and PYQ, so Ask AI can open those files from the course URL — not only the default Materials tab.",
+        text: "Course Ask AI keeps direct links to notes and PYQ in the ChatGPT prompt first (those tabs are not in the default course-page HTML); material URLs drop first when space is tight.",
       },
     ],
   },
