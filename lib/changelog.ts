@@ -24,6 +24,19 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-08-30-ask-ai",
+    date: "2026-08-30",
+    title: "Ask AI on course files",
+    summary:
+      "Ask a question about any material, note, or PYQ from the file row — opens ChatGPT with a prompt grounded in that file and the course library.",
+    items: [
+      {
+        kind: "added",
+        text: "Ask AI (wand) on course file rows opens a question dialog, then ChatGPT with links to the file and course page.",
+      },
+    ],
+  },
+  {
     id: "2026-08-29-drag-drop-upload",
     date: "2026-08-29",
     title: "Drag and drop upload",
