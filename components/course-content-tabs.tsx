@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Search, X } from "lucide-react";
 import posthog from "posthog-js";
 
 import { DocumentTable } from "@/components/document-table";
 import { FileDropZone } from "@/components/file-drop-zone";
 import { UploadFileButton } from "@/components/upload-file-button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   pickSupportedUploadFile,
@@ -41,6 +43,16 @@ function isUploadKind(value: string): value is UploadKind {
   return value === "materials" || value === "notes" || value === "pyq";
 }
 
+function matchesQuery(doc: Document, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    doc.name.toLowerCase().includes(q) ||
+    doc.fileName.toLowerCase().includes(q) ||
+    doc.extension.toLowerCase().includes(q)
+  );
+}
+
 export function CourseContentTabs({
   semesterSlug,
   courseSlug,
@@ -50,6 +62,7 @@ export function CourseContentTabs({
 }: CourseContentTabsProps) {
   const [tab, setTab] = useState<UploadKind>("materials");
   const [dropError, setDropError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const filesByKind: Record<UploadKind, Document[]> = {
     materials,
@@ -58,6 +71,10 @@ export function CourseContentTabs({
   };
 
   const existingFileNames = filesByKind[tab].map((doc) => doc.fileName);
+  const activeDocs = filesByKind[tab];
+  const filteredDocs = activeDocs.filter((doc) => matchesQuery(doc, query));
+  const hasFiles = activeDocs.length > 0;
+  const hasQuery = query.trim().length > 0;
 
   const upload = useCourseFileUpload({
     semesterSlug,
@@ -92,6 +109,7 @@ export function CourseContentTabs({
             course_slug: courseSlug,
           });
           setDropError(null);
+          setQuery("");
           setTab(value);
         }
       }}
@@ -122,7 +140,38 @@ export function CourseContentTabs({
           </TabsTrigger>
         </TabsList>
 
-        <UploadFileButton upload={upload} className="w-full sm:w-auto" />
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
+          {hasFiles ? (
+            <div className="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
+              <Search
+                className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                strokeWidth={1.75}
+              />
+              <Input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search files…"
+                aria-label="Search files"
+                className="h-9 pl-8 pr-8 text-[13px]"
+              />
+              {hasQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="size-3.5" strokeWidth={1.75} />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          <UploadFileButton
+            upload={upload}
+            className={hasFiles ? "shrink-0" : "w-full sm:w-auto"}
+          />
+        </div>
       </div>
 
       {dropError ? (
@@ -138,34 +187,37 @@ export function CourseContentTabs({
       >
         <TabsContent value="materials" className="mt-0 outline-none">
           <DocumentTable
-            documents={materials}
+            documents={tab === "materials" ? filteredDocs : materials}
             semesterSlug={semesterSlug}
             courseSlug={courseSlug}
             emptyTitle="No materials yet"
             emptyDescription="Drop a file here or use Upload — PDFs, presentations, documents, or images for lectures, readings, and assignments."
             emptyHint="Supported · PDF · PPTX · DOCX · Images"
+            filterQuery={tab === "materials" ? query : undefined}
           />
         </TabsContent>
 
         <TabsContent value="notes" className="mt-0 outline-none">
           <DocumentTable
-            documents={notes}
+            documents={tab === "notes" ? filteredDocs : notes}
             semesterSlug={semesterSlug}
             courseSlug={courseSlug}
             emptyTitle="No notes yet"
             emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
             emptyHint="Supported · PDF · PPTX · DOCX · Images"
+            filterQuery={tab === "notes" ? query : undefined}
           />
         </TabsContent>
 
         <TabsContent value="pyq" className="mt-0 outline-none">
           <DocumentTable
-            documents={pyq}
+            documents={tab === "pyq" ? filteredDocs : pyq}
             semesterSlug={semesterSlug}
             courseSlug={courseSlug}
             emptyTitle="No PYQ yet"
             emptyDescription="Drop a file here or use Upload — previous year questions and midterms stay separate from materials and notes."
             emptyHint="Supported · PDF · PPTX · DOCX · Images"
+            filterQuery={tab === "pyq" ? query : undefined}
           />
         </TabsContent>
       </FileDropZone>

@@ -1,21 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import {
-  Download,
-  Eye,
-  FileText,
-  ImageIcon,
-  Presentation,
-  Search,
-  Upload,
-  X,
-} from "lucide-react";
+import { Download, Eye, FileText, ImageIcon, Presentation, Upload } from "lucide-react";
 
 import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -36,6 +25,8 @@ interface DocumentTableProps {
   emptyTitle?: string;
   emptyDescription?: string;
   emptyHint?: string;
+  /** When set and documents is empty, show a compact “no matches” state instead of the folder-empty state. */
+  filterQuery?: string;
 }
 
 function FileIcon({ extension }: { extension: Document["extension"] }) {
@@ -95,7 +86,6 @@ function DocumentActions({
   isPdf: boolean;
   semesterSlug: string;
   courseSlug: string;
-  compact?: boolean;
 }) {
   const shareUrl = getMaterialShareUrl(doc, semesterSlug, courseSlug);
 
@@ -135,16 +125,6 @@ function DocumentActions({
   );
 }
 
-function matchesQuery(doc: Document, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  return (
-    doc.name.toLowerCase().includes(q) ||
-    doc.fileName.toLowerCase().includes(q) ||
-    doc.extension.toLowerCase().includes(q)
-  );
-}
-
 export function DocumentTable({
   documents,
   semesterSlug,
@@ -152,10 +132,19 @@ export function DocumentTable({
   emptyTitle = "No materials yet",
   emptyDescription = "Documents will appear here when added to this course folder.",
   emptyHint,
+  filterQuery,
 }: DocumentTableProps) {
-  const [query, setQuery] = useState("");
-
   if (documents.length === 0) {
+    if (filterQuery?.trim()) {
+      return (
+        <div className="rounded-lg border border-dashed border-border bg-card px-4 py-6 text-center">
+          <p className="text-[13px] text-muted-foreground">
+            No files match “{filterQuery.trim()}”
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-5 py-14 text-center sm:px-8 sm:py-16">
         <div className="mb-4 flex size-11 items-center justify-center rounded-lg border border-border bg-muted">
@@ -176,195 +165,154 @@ export function DocumentTable({
     );
   }
 
-  const filtered = documents.filter((doc) => matchesQuery(doc, query));
-  const hasQuery = query.trim().length > 0;
-
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
-          strokeWidth={1.75}
-        />
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search files…"
-          aria-label="Search files"
-          className="h-9 pl-8 pr-8 text-[13px]"
-        />
-        {hasQuery ? (
-          <button
-            type="button"
-            onClick={() => setQuery("")}
-            className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Clear search"
-          >
-            <X className="size-3.5" strokeWidth={1.75} />
-          </button>
-        ) : null}
-      </div>
+    <>
+      {/* Mobile: stacked cards */}
+      <ul className="flex flex-col gap-2 sm:hidden">
+        {documents.map((doc) => {
+          const badge = getFileTypeBadge(doc.extension);
+          const isPdf = doc.extension === "pdf";
+          const viewHref = isPdf
+            ? doc.publicPath
+            : `/${semesterSlug}/${courseSlug}/${doc.slug}`;
+          const nameClassName =
+            "line-clamp-2 text-[13px] font-medium tracking-tight text-foreground";
 
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-5 py-10 text-center">
-          <p className="text-[14px] font-medium tracking-tight text-foreground">
-            No matching files
-          </p>
-          <p className="mt-1.5 text-[13px] text-muted-foreground">
-            Nothing matches “{query.trim()}”. Try a different name or type.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile: stacked cards */}
-          <ul className="flex flex-col gap-2 sm:hidden">
-            {filtered.map((doc) => {
-              const badge = getFileTypeBadge(doc.extension);
-              const isPdf = doc.extension === "pdf";
-              const viewHref = isPdf
-                ? doc.publicPath
-                : `/${semesterSlug}/${courseSlug}/${doc.slug}`;
-              const nameClassName =
-                "line-clamp-2 text-[13px] font-medium tracking-tight text-foreground";
+          return (
+            <li
+              key={doc.slug}
+              className="rounded-lg border border-border bg-card p-3 transition-colors duration-150 active:bg-muted/40"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/60">
+                  <FileIcon extension={doc.extension} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {isPdf ? (
+                    <a href={viewHref} className={nameClassName} title={doc.name}>
+                      {doc.name}
+                    </a>
+                  ) : (
+                    <Link href={viewHref} className={nameClassName} title={doc.name}>
+                      {doc.name}
+                    </Link>
+                  )}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10px] font-medium",
+                        badge.className
+                      )}
+                    >
+                      {badge.label}
+                    </span>
+                    <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                      {doc.size}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2.5 flex items-center justify-end border-t border-border pt-2">
+                <DocumentActions
+                  doc={doc}
+                  viewHref={viewHref}
+                  isPdf={isPdf}
+                  semesterSlug={semesterSlug}
+                  courseSlug={courseSlug}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
 
-              return (
-                <li
-                  key={doc.slug}
-                  className="rounded-lg border border-border bg-card p-3 transition-colors duration-150 active:bg-muted/40"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/60">
-                      <FileIcon extension={doc.extension} />
-                    </div>
-                    <div className="min-w-0 flex-1">
+      {/* Tablet / desktop: table */}
+      <div className="hidden overflow-hidden rounded-lg border border-border bg-card sm:block">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-9 w-10 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase" />
+                <TableHead className="h-9 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Name
+                </TableHead>
+                <TableHead className="hidden h-9 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase md:table-cell">
+                  Type
+                </TableHead>
+                <TableHead className="hidden h-9 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase lg:table-cell">
+                  Size
+                </TableHead>
+                <TableHead className="h-9 bg-muted/50 px-3 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => {
+                const badge = getFileTypeBadge(doc.extension);
+                const isPdf = doc.extension === "pdf";
+                const viewHref = isPdf
+                  ? doc.publicPath
+                  : `/${semesterSlug}/${courseSlug}/${doc.slug}`;
+
+                return (
+                  <TableRow
+                    key={doc.slug}
+                    className="transition-colors duration-150 hover:bg-muted/40"
+                  >
+                    <TableCell className="px-3 py-2.5">
+                      <div className="flex size-7 items-center justify-center rounded-md border border-border bg-muted/60">
+                        <FileIcon extension={doc.extension} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] px-3 py-2.5 md:max-w-md">
                       {isPdf ? (
-                        <a href={viewHref} className={nameClassName} title={doc.name}>
+                        <a
+                          href={viewHref}
+                          className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary md:line-clamp-1"
+                          title={doc.name}
+                        >
                           {doc.name}
                         </a>
                       ) : (
-                        <Link href={viewHref} className={nameClassName} title={doc.name}>
+                        <Link
+                          href={viewHref}
+                          className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary md:line-clamp-1"
+                          title={doc.name}
+                        >
                           {doc.name}
                         </Link>
                       )}
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10px] font-medium",
-                            badge.className
-                          )}
-                        >
-                          {badge.label}
-                        </span>
-                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                          {doc.size}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2.5 flex items-center justify-end border-t border-border pt-2">
-                    <DocumentActions
-                      doc={doc}
-                      viewHref={viewHref}
-                      isPdf={isPdf}
-                      semesterSlug={semesterSlug}
-                      courseSlug={courseSlug}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Tablet / desktop: table */}
-          <div className="hidden overflow-hidden rounded-lg border border-border bg-card sm:block">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-9 w-10 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase" />
-                    <TableHead className="h-9 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                      Name
-                    </TableHead>
-                    <TableHead className="hidden h-9 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase md:table-cell">
-                      Type
-                    </TableHead>
-                    <TableHead className="hidden h-9 bg-muted/50 px-3 text-[11px] font-medium tracking-wide text-muted-foreground uppercase lg:table-cell">
-                      Size
-                    </TableHead>
-                    <TableHead className="h-9 bg-muted/50 px-3 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((doc) => {
-                    const badge = getFileTypeBadge(doc.extension);
-                    const isPdf = doc.extension === "pdf";
-                    const viewHref = isPdf
-                      ? doc.publicPath
-                      : `/${semesterSlug}/${courseSlug}/${doc.slug}`;
-
-                    return (
-                      <TableRow
-                        key={doc.slug}
-                        className="transition-colors duration-150 hover:bg-muted/40"
+                    </TableCell>
+                    <TableCell className="hidden px-3 py-2.5 md:table-cell">
+                      <span
+                        className={cn(
+                          "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10px] font-medium",
+                          badge.className
+                        )}
                       >
-                        <TableCell className="px-3 py-2.5">
-                          <div className="flex size-7 items-center justify-center rounded-md border border-border bg-muted/60">
-                            <FileIcon extension={doc.extension} />
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] px-3 py-2.5 md:max-w-md">
-                          {isPdf ? (
-                            <a
-                              href={viewHref}
-                              className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary md:line-clamp-1"
-                              title={doc.name}
-                            >
-                              {doc.name}
-                            </a>
-                          ) : (
-                            <Link
-                              href={viewHref}
-                              className="line-clamp-2 text-[13px] font-medium tracking-tight text-foreground transition-colors duration-150 hover:text-primary md:line-clamp-1"
-                              title={doc.name}
-                            >
-                              {doc.name}
-                            </Link>
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden px-3 py-2.5 md:table-cell">
-                          <span
-                            className={cn(
-                              "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10px] font-medium",
-                              badge.className
-                            )}
-                          >
-                            {badge.label}
-                          </span>
-                        </TableCell>
-                        <TableCell className="hidden px-3 py-2.5 font-mono text-[12px] tabular-nums text-muted-foreground lg:table-cell">
-                          {doc.size}
-                        </TableCell>
-                        <TableCell className="px-3 py-2.5 text-right">
-                          <DocumentActions
-                            doc={doc}
-                            viewHref={viewHref}
-                            isPdf={isPdf}
-                            semesterSlug={semesterSlug}
-                            courseSlug={courseSlug}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+                        {badge.label}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden px-3 py-2.5 font-mono text-[12px] tabular-nums text-muted-foreground lg:table-cell">
+                      {doc.size}
+                    </TableCell>
+                    <TableCell className="px-3 py-2.5 text-right">
+                      <DocumentActions
+                        doc={doc}
+                        viewHref={viewHref}
+                        isPdf={isPdf}
+                        semesterSlug={semesterSlug}
+                        courseSlug={courseSlug}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </>
   );
 }
