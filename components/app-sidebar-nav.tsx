@@ -154,9 +154,17 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                               course.pyq.length}
                           </SidebarMenuBadge>
                         </SidebarMenuButton>
-                        {isCourseActive && course.documents.length > 0 ? (
+                        {isCourseActive &&
+                        course.documents.length +
+                          course.notes.length +
+                          course.pyq.length >
+                          0 ? (
                           <SidebarMenuSub className="mx-0 ml-3.5 border-l border-sidebar-border px-0 pl-2.5">
-                            {course.documents.map((doc) => {
+                            {[
+                              ...course.documents,
+                              ...course.notes,
+                              ...course.pyq,
+                            ].map((doc) => {
                               const isPdf = doc.extension === "pdf";
                               const docHref = isPdf
                                 ? doc.publicPath

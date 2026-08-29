@@ -3,7 +3,8 @@ const MAX_PROMPT_LENGTH = 1700;
 const SHORTENED_NOTE =
   "(Question was shortened to fit the chat handoff limit.)";
 
-const MORE_FILES_NOTE_PREFIX = "(…and ";
+const URLS_OMITTED_NOTE =
+  "(URLs omitted for length — open the course library URL above for every file.)";
 
 export type AskAiFileKind = "material" | "note" | "pyq";
 
@@ -56,7 +57,7 @@ Context
 
 How to answer
 1. Prefer the primary file. If you can open/fetch it, ground your answer in that material and say when you used it.
-2. If the primary file is not enough or you cannot access it, use the course library URL to find other relevant files for this same subject, or tell the student exactly which linked file on that page they should open next.
+2. If the primary file is not enough or you cannot access it, open the course library URL and follow its file links (materials, notes, and PYQ under a pyq/ path — not the course folder root). Or tell the student which linked file to open next.
 3. If you still cannot verify something from those sources, say so clearly (e.g. "Not in the linked materials") instead of inventing lecture content, quotes, page numbers, or fake citations.
 4. Teach clearly: short sections, steps, and formulas when useful. For graded homework, give a hint or method first; provide a full worked solution only if they still need it.
 5. End with 1–3 follow-up study questions the student can try, tied to this course when possible.
@@ -65,35 +66,102 @@ Student question:
 ${params.question}`;
 }
 
-function formatFileLine(file: AskAiCourseFile): string {
-  return `- "${file.name}" — ${file.url}`;
+function orderedCourseFiles(files: AskAiCourseFile[]): AskAiCourseFile[] {
+  return KIND_SECTION_ORDER.flatMap((kind) =>
+    files.filter((file) => file.kind === kind)
+  );
 }
 
+function formatFileLine(file: AskAiCourseFile, withUrl: boolean): string {
+  if (withUrl) {
+    return `- "${file.name}" — ${file.url}`;
+  }
+  return `- "${file.name}"`;
+}
+
+/**
+ * When only some URLs fit, spread them across materials, notes, and PYQ
+ * instead of filling materials first and dropping PYQ.
+ */
+function pickFilesWithUrls(
+  orderedFiles: AskAiCourseFile[],
+  urlCount: number
+): Set<AskAiCourseFile> {
+  const withUrls = new Set<AskAiCourseFile>();
+  if (urlCount <= 0) return withUrls;
+
+  const byKind: Record<AskAiFileKind, AskAiCourseFile[]> = {
+    material: [],
+    note: [],
+    pyq: [],
+  };
+  for (const file of orderedFiles) {
+    byKind[file.kind].push(file);
+  }
+
+  const nextIndex: Record<AskAiFileKind, number> = {
+    material: 0,
+    note: 0,
+    pyq: 0,
+  };
+
+  while (withUrls.size < urlCount) {
+    let added = false;
+    for (const kind of KIND_SECTION_ORDER) {
+      if (withUrls.size >= urlCount) break;
+      const list = byKind[kind];
+      const index = nextIndex[kind];
+      if (index < list.length) {
+        withUrls.add(list[index]);
+        nextIndex[kind] = index + 1;
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+
+  return withUrls;
+}
+
+/**
+ * Lists every file name (grouped by kind). Up to `filesWithUrlCount` files
+ * also get absolute URLs, spread across kinds so PYQ is not dropped first.
+ */
 function formatFilesSection(
-  files: AskAiCourseFile[],
-  omittedCount: number,
-  courseUrl: string
+  orderedFiles: AskAiCourseFile[],
+  filesWithUrlCount: number,
+  urlsOmitted: boolean
 ): string {
-  if (files.length === 0 && omittedCount === 0) {
+  if (orderedFiles.length === 0) {
     return "(No files listed — use the course library URL above.)";
   }
 
+  const filesWithUrls = pickFilesWithUrls(orderedFiles, filesWithUrlCount);
   const groups: string[] = [];
+  let index = 0;
 
   for (const kind of KIND_SECTION_ORDER) {
-    const kindFiles = files.filter((file) => file.kind === kind);
+    const kindFiles: AskAiCourseFile[] = [];
+    while (
+      index < orderedFiles.length &&
+      orderedFiles[index].kind === kind
+    ) {
+      kindFiles.push(orderedFiles[index]);
+      index += 1;
+    }
     if (kindFiles.length === 0) continue;
 
-    groups.push(
-      `${KIND_SECTION_LABEL[kind]}:\n${kindFiles.map(formatFileLine).join("\n")}`
+    const lines = kindFiles.map((file) =>
+      formatFileLine(file, filesWithUrls.has(file))
     );
+
+    groups.push(`${KIND_SECTION_LABEL[kind]}:\n${lines.join("\n")}`);
   }
 
   let section = groups.join("\n\n");
 
-  if (omittedCount > 0) {
-    const moreNote = `${MORE_FILES_NOTE_PREFIX}${omittedCount} more file${omittedCount === 1 ? "" : "s"} on the course page: ${courseUrl})`;
-    section = section ? `${section}\n${moreNote}` : moreNote;
+  if (urlsOmitted) {
+    section = `${section}\n${URLS_OMITTED_NOTE}`;
   }
 
   return section;
@@ -116,7 +184,7 @@ ${params.filesSection}
 
 How to answer
 1. Prefer the linked materials above. If you can open/fetch them, ground your answer in those files and say when you used them.
-2. If the listed files are not enough or you cannot access them, use the course library URL to find other relevant files for this same subject, or tell the student exactly which linked file on that page they should open next.
+2. If the listed files are not enough or you cannot access them, open the course library URL and follow its file links (materials, notes, and PYQ under a pyq/ path — not the course folder root). Or tell the student which linked file to open next.
 3. If you still cannot verify something from those sources, say so clearly (e.g. "Not in the linked materials") instead of inventing lecture content, quotes, page numbers, or fake citations.
 4. Teach clearly: short sections, steps, and formulas when useful. For graded homework, give a hint or method first; provide a full worked solution only if they still need it.
 5. End with 1–3 follow-up study questions the student can try, tied to this course when possible.
@@ -187,7 +255,8 @@ export function buildAskAiPrompt({
 
 /**
  * Builds a curated ChatGPT `?q=` prompt for a whole course (all files).
- * Soft-caps length by omitting trailing files first, then truncating the question.
+ * Soft-caps length by omitting file URLs first, then truncating the question —
+ * never by dropping file names.
  */
 export function buildCourseAskAiPrompt({
   courseName,
@@ -197,33 +266,32 @@ export function buildCourseAskAiPrompt({
   question,
 }: BuildCourseAskAiPromptInput): string {
   const trimmedQuestion = question.trim();
-  const totalFiles = files.length;
+  const ordered = orderedCourseFiles(files);
+  const totalFiles = ordered.length;
+  const questionOverhead = `\n…\n${SHORTENED_NOTE}`.length;
 
-  function promptWith(includedCount: number, questionText: string): string {
-    const included = files.slice(0, includedCount);
-    const omittedCount = totalFiles - includedCount;
+  function promptWith(urlCount: number, questionText: string): string {
+    const urlsOmitted = totalFiles > 0 && urlCount < totalFiles;
     return buildCoursePromptBody({
       courseName,
       semesterName,
       courseUrl,
-      filesSection: formatFilesSection(included, omittedCount, courseUrl),
+      filesSection: formatFilesSection(ordered, urlCount, urlsOmitted),
       question: questionText,
     });
   }
 
-  // Prefer the full question; drop trailing files until it fits.
-  for (let includedCount = totalFiles; includedCount >= 0; includedCount -= 1) {
-    const candidate = promptWith(includedCount, trimmedQuestion);
+  // Prefer the full question; drop URLs until it fits (all names always stay).
+  for (let urlCount = totalFiles; urlCount >= 0; urlCount -= 1) {
+    const candidate = promptWith(urlCount, trimmedQuestion);
     if (candidate.length <= MAX_PROMPT_LENGTH) {
       return candidate;
     }
   }
 
-  // Question still overflows — keep as many files as fit with a truncated question.
-  const questionOverhead = `\n…\n${SHORTENED_NOTE}`.length;
-
-  for (let includedCount = totalFiles; includedCount >= 0; includedCount -= 1) {
-    const withEmptyQuestion = promptWith(includedCount, "");
+  // Question still overflows — keep as many URLs as fit with a truncated question.
+  for (let urlCount = totalFiles; urlCount >= 0; urlCount -= 1) {
+    const withEmptyQuestion = promptWith(urlCount, "");
     const available =
       MAX_PROMPT_LENGTH - withEmptyQuestion.length - questionOverhead;
 
@@ -231,7 +299,7 @@ export function buildCourseAskAiPrompt({
 
     const truncatedQuestion = trimmedQuestion.slice(0, available).trimEnd();
     const candidate = promptWith(
-      includedCount,
+      urlCount,
       `${truncatedQuestion}\n…\n${SHORTENED_NOTE}`
     );
 
@@ -240,10 +308,7 @@ export function buildCourseAskAiPrompt({
     }
   }
 
-  // Extremely long URLs/names: keep instructions + course URL only.
+  // Names secured; drop the question body. Do not slice names to force the soft cap.
   const fallback = promptWith(0, "");
-  return `${fallback.trimEnd()}\n…\n${SHORTENED_NOTE}`.slice(
-    0,
-    MAX_PROMPT_LENGTH
-  );
+  return `${fallback.trimEnd()}\n…\n${SHORTENED_NOTE}`;
 }

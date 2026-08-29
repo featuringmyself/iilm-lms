@@ -108,20 +108,18 @@ export function CourseContentTabs({
     upload.offerFile(file);
   }
 
+  const askAiProps = {
+    courseName,
+    semesterName,
+    semesterSlug,
+    courseSlug,
+    materials,
+    notes,
+    pyq,
+  } as const;
+
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
-      {hasCourseFiles ? (
-        <CourseAskAiButton
-          courseName={courseName}
-          semesterName={semesterName}
-          semesterSlug={semesterSlug}
-          courseSlug={courseSlug}
-          materials={materials}
-          notes={notes}
-          pyq={pyq}
-        />
-      ) : null}
-
       <Tabs
         value={tab}
         onValueChange={(value) => {
@@ -167,7 +165,7 @@ export function CourseContentTabs({
             ) : null}
           </TabsList>
 
-          <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
+          <div className="flex w-full items-center gap-1.5 sm:w-auto sm:justify-end sm:gap-2">
             {hasFiles ? (
               <div className="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
                 <Search
@@ -194,9 +192,18 @@ export function CourseContentTabs({
                 ) : null}
               </div>
             ) : null}
+            {hasCourseFiles ? (
+              <CourseAskAiButton {...askAiProps} className="shrink-0" />
+            ) : null}
             <UploadFileButton
               upload={upload}
-              className={hasFiles ? "shrink-0" : "w-full sm:w-auto"}
+              className={
+                hasFiles
+                  ? "shrink-0"
+                  : hasCourseFiles
+                    ? "min-w-0 flex-1 sm:flex-none sm:w-auto"
+                    : "w-full sm:w-auto"
+              }
             />
           </div>
         </div>
@@ -212,7 +219,13 @@ export function CourseContentTabs({
           disabled={upload.uploading || upload.dialogOpen}
           onDropFiles={handleDropFiles}
         >
-          <TabsContent value="materials" className="mt-0 outline-none">
+          {/* keepMounted: inactive tabs stay in the HTML so crawlers/ChatGPT
+              can follow notes and PYQ file links, not only the default Materials tab. */}
+          <TabsContent
+            value="materials"
+            keepMounted
+            className="mt-0 outline-none"
+          >
             <DocumentTable
               documents={tab === "materials" ? filteredDocs : materials}
               semesterSlug={semesterSlug}
@@ -227,7 +240,11 @@ export function CourseContentTabs({
           </TabsContent>
 
           {showNotes ? (
-            <TabsContent value="notes" className="mt-0 outline-none">
+            <TabsContent
+              value="notes"
+              keepMounted
+              className="mt-0 outline-none"
+            >
               <DocumentTable
                 documents={tab === "notes" ? filteredDocs : notes}
                 semesterSlug={semesterSlug}
@@ -243,7 +260,7 @@ export function CourseContentTabs({
           ) : null}
 
           {showPyq ? (
-            <TabsContent value="pyq" className="mt-0 outline-none">
+            <TabsContent value="pyq" keepMounted className="mt-0 outline-none">
               <DocumentTable
                 documents={tab === "pyq" ? filteredDocs : pyq}
                 semesterSlug={semesterSlug}

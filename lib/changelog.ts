@@ -36,7 +36,11 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "added",
-        text: "Course-level Ask AI sits below the subject header (above Materials / Notes / PYQ) and lists every file for the course with your question to ChatGPT.",
+        text: "Course-level Ask AI in the tabs toolbar next to Upload — wand icon on mobile, labeled button on desktop; lists every course file with your question to ChatGPT.",
+      },
+      {
+        kind: "fixed",
+        text: "Ask AI can find PYQ and notes from the course folder URL — those files lived behind an unmounted tab (and a pyq/ subfolder), so only materials were linked in the page HTML.",
       },
     ],
   },
