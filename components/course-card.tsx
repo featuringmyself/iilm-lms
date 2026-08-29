@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
-import { getCourseTheme, getFileTypeBadge } from "@/lib/course-themes";
+import { getCourseTheme } from "@/lib/course-themes";
 import type { Course } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
@@ -17,14 +17,8 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
 
   const noteCount = course.notes.length;
   const pyqCount = course.pyq.length;
-  const typeCounts = [
-    ...course.documents,
-    ...course.notes,
-    ...course.pyq,
-  ].reduce<Record<string, number>>((acc, doc) => {
-    acc[doc.extension] = (acc[doc.extension] ?? 0) + 1;
-    return acc;
-  }, {});
+  const fileCount =
+    course.documents.length + course.notes.length + course.pyq.length;
 
   return (
     <Link
@@ -72,23 +66,10 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
             </>
           ) : null}
         </p>
-        {Object.keys(typeCounts).length > 0 ? (
-          <div className="flex flex-wrap justify-end gap-1">
-            {Object.entries(typeCounts).map(([ext, count]) => {
-              const badge = getFileTypeBadge(ext);
-              return (
-                <span
-                  key={ext}
-                  className={cn(
-                    "inline-flex h-5 items-center rounded px-1.5 font-mono text-[10px] font-medium tabular-nums",
-                    badge.className
-                  )}
-                >
-                  {count} {badge.label}
-                </span>
-              );
-            })}
-          </div>
+        {fileCount > 0 ? (
+          <span className="inline-flex h-5 items-center rounded bg-muted px-1.5 font-mono text-[10px] font-medium tabular-nums text-muted-foreground">
+            {fileCount} file{fileCount === 1 ? "" : "s"}
+          </span>
         ) : null}
       </div>
     </Link>
