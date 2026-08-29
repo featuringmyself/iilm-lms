@@ -28,11 +28,15 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-08-30",
     title: "Ask AI on course files",
     summary:
-      "Ask a question about any material, note, or PYQ from the file row — opens ChatGPT with a prompt grounded in that file and the course library.",
+      "Ask a question about a whole course or any single material, note, or PYQ — opens ChatGPT with a prompt grounded in those files and the course library.",
     items: [
       {
         kind: "added",
         text: "Ask AI (wand) on course file rows opens a question dialog, then ChatGPT with links to the file and course page.",
+      },
+      {
+        kind: "added",
+        text: "Course-level Ask AI sits below the subject header (above Materials / Notes / PYQ) and lists every file for the course with your question to ChatGPT.",
       },
     ],
   },
