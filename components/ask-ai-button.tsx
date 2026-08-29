@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
-import { ExternalLink, FileText, Wand2 } from "lucide-react";
+import { ExternalLink, Wand2 } from "lucide-react";
 import posthog from "posthog-js";
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { buildAskAiPrompt } from "@/lib/ask-ai-prompt";
 import { cn } from "@/lib/utils";
 
@@ -112,88 +111,90 @@ export function AskAiButton({
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="gap-5 sm:max-w-md">
-          <DialogHeader className="gap-1.5 pr-6">
-            <DialogTitle className="text-base tracking-tight">
-              Ask AI
-            </DialogTitle>
-            <DialogDescription className="text-[13px] leading-relaxed">
-              Type a question about this material. We open ChatGPT in a new tab
-              with the file and course library linked so answers stay grounded.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div
-            className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 px-3 py-2.5"
-            aria-label="File context"
+          <form
+            className="contents"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSubmit();
+            }}
           >
-            <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background">
-              <FileText
-                className="size-3.5 text-muted-foreground"
-                strokeWidth={1.75}
+            <DialogHeader className="gap-1.5 pr-6">
+              <DialogTitle className="text-base tracking-tight">
+                Ask AI
+              </DialogTitle>
+              <DialogDescription className="text-[13px] leading-relaxed">
+                Opens ChatGPT with your question and links to this material.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-[13px] font-medium text-foreground">File</p>
+              <div className="min-w-0 space-y-0.5">
+                <p
+                  className="wrap-anywhere text-[13px] leading-snug tracking-tight text-foreground"
+                  title={documentName}
+                >
+                  {documentName}
+                </p>
+                <p className="text-[12px] leading-relaxed text-muted-foreground">
+                  {courseName}
+                  <span className="text-muted-foreground/50"> · </span>
+                  {semesterName}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor={questionId}
+                className="text-[13px] font-medium text-foreground"
+              >
+                Question
+              </label>
+              <textarea
+                id={questionId}
+                value={question}
+                autoFocus
+                autoComplete="off"
+                rows={4}
+                enterKeyHint="go"
+                placeholder="What should ChatGPT explain or summarize?"
+                className={cn(
+                  "min-h-26 w-full min-w-0 resize-y rounded-md border border-input bg-transparent px-2.5 py-2 text-base leading-relaxed shadow-xs transition-[color,box-shadow] outline-none",
+                  "placeholder:text-muted-foreground",
+                  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                  "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+                  "md:text-sm dark:bg-input/30"
+                )}
+                onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSubmit();
+                  }
+                }}
               />
             </div>
-            <div className="min-w-0 flex-1">
-              <p
-                className="truncate text-[13px] font-medium tracking-tight text-foreground"
-                title={documentName}
+
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 sm:h-9"
+                onClick={() => handleOpenChange(false)}
               >
-                {documentName}
-              </p>
-              <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
-                {courseName}
-                <span className="text-muted-foreground/60"> · </span>
-                {semesterName}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor={questionId}
-              className="text-[13px] font-medium text-foreground"
-            >
-              Your question
-            </label>
-            <Input
-              id={questionId}
-              value={question}
-              autoFocus
-              autoComplete="off"
-              enterKeyHint="go"
-              placeholder="e.g. Explain the main idea in simple terms"
-              className="h-11 text-base sm:h-9 sm:text-sm"
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSubmit();
-                }
-              }}
-            />
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Tip: ask for a summary, definitions, or a step-by-step walkthrough.
-            </p>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 sm:h-9"
-              onClick={() => handleOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="h-10 sm:h-9"
-              disabled={!canSubmit}
-              onClick={handleSubmit}
-            >
-              Open in ChatGPT
-              <ExternalLink className="size-3.5" strokeWidth={1.75} />
-            </Button>
-          </DialogFooter>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-10 sm:h-9"
+                disabled={!canSubmit}
+              >
+                Open in ChatGPT
+                <ExternalLink className="size-3.5" strokeWidth={1.75} />
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
