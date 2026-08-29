@@ -29,15 +29,20 @@ export default async function CoursePage({
   const materialCount = course.documents.length;
   const noteCount = course.notes.length;
   const pyqCount = course.pyq.length;
-  const materialLabel = `${materialCount} material${materialCount === 1 ? "" : "s"}`;
-  const noteLabel = `${noteCount} note${noteCount === 1 ? "" : "s"}`;
-  const pyqLabel = `${pyqCount} PYQ`;
+  const descriptionParts = [
+    semester.displayName,
+    `${materialCount} material${materialCount === 1 ? "" : "s"}`,
+    noteCount > 0
+      ? `${noteCount} note${noteCount === 1 ? "" : "s"}`
+      : null,
+    pyqCount > 0 ? `${pyqCount} PYQ` : null,
+  ].filter(Boolean);
 
   return (
     <>
       <PageHeader
         title={course.name}
-        description={`${semester.displayName} · ${materialLabel} · ${noteLabel} · ${pyqLabel}`}
+        description={descriptionParts.join(" · ")}
       />
       <CourseContentTabs
         semesterSlug={semester.slug}

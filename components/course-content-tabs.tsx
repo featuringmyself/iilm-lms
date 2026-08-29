@@ -64,6 +64,9 @@ export function CourseContentTabs({
   const [dropError, setDropError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  const showNotes = notes.length > 0;
+  const showPyq = pyq.length > 0;
+
   const filesByKind: Record<UploadKind, Document[]> = {
     materials,
     notes,
@@ -124,20 +127,24 @@ export function CourseContentTabs({
             Materials
             <TabCount count={materials.length} />
           </TabsTrigger>
-          <TabsTrigger
-            value="notes"
-            className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
-          >
-            Notes
-            <TabCount count={notes.length} />
-          </TabsTrigger>
-          <TabsTrigger
-            value="pyq"
-            className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
-          >
-            PYQ
-            <TabCount count={pyq.length} />
-          </TabsTrigger>
+          {showNotes ? (
+            <TabsTrigger
+              value="notes"
+              className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
+            >
+              Notes
+              <TabCount count={notes.length} />
+            </TabsTrigger>
+          ) : null}
+          {showPyq ? (
+            <TabsTrigger
+              value="pyq"
+              className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
+            >
+              PYQ
+              <TabCount count={pyq.length} />
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
         <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
@@ -197,29 +204,33 @@ export function CourseContentTabs({
           />
         </TabsContent>
 
-        <TabsContent value="notes" className="mt-0 outline-none">
-          <DocumentTable
-            documents={tab === "notes" ? filteredDocs : notes}
-            semesterSlug={semesterSlug}
-            courseSlug={courseSlug}
-            emptyTitle="No notes yet"
-            emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
-            emptyHint="Supported · PDF · PPTX · DOCX · Images"
-            filterQuery={tab === "notes" ? query : undefined}
-          />
-        </TabsContent>
+        {showNotes ? (
+          <TabsContent value="notes" className="mt-0 outline-none">
+            <DocumentTable
+              documents={tab === "notes" ? filteredDocs : notes}
+              semesterSlug={semesterSlug}
+              courseSlug={courseSlug}
+              emptyTitle="No notes yet"
+              emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
+              emptyHint="Supported · PDF · PPTX · DOCX · Images"
+              filterQuery={tab === "notes" ? query : undefined}
+            />
+          </TabsContent>
+        ) : null}
 
-        <TabsContent value="pyq" className="mt-0 outline-none">
-          <DocumentTable
-            documents={tab === "pyq" ? filteredDocs : pyq}
-            semesterSlug={semesterSlug}
-            courseSlug={courseSlug}
-            emptyTitle="No PYQ yet"
-            emptyDescription="Drop a file here or use Upload — previous year questions and midterms stay separate from materials and notes."
-            emptyHint="Supported · PDF · PPTX · DOCX · Images"
-            filterQuery={tab === "pyq" ? query : undefined}
-          />
-        </TabsContent>
+        {showPyq ? (
+          <TabsContent value="pyq" className="mt-0 outline-none">
+            <DocumentTable
+              documents={tab === "pyq" ? filteredDocs : pyq}
+              semesterSlug={semesterSlug}
+              courseSlug={courseSlug}
+              emptyTitle="No PYQ yet"
+              emptyDescription="Drop a file here or use Upload — previous year questions and midterms stay separate from materials and notes."
+              emptyHint="Supported · PDF · PPTX · DOCX · Images"
+              filterQuery={tab === "pyq" ? query : undefined}
+            />
+          </TabsContent>
+        ) : null}
       </FileDropZone>
     </Tabs>
   );
