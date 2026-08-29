@@ -50,7 +50,7 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
       </h3>
 
       <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-        <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+        <p className="font-mono text-[11px] tabular-nums text-muted-foreground lg:block hidden">
           {course.documents.length} material
           {course.documents.length === 1 ? "" : "s"}
           {noteCount > 0 ? (
