@@ -14,12 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   buildCourseAskAiPrompt,
   type AskAiCourseFile,
   type AskAiFileKind,
@@ -161,36 +155,21 @@ export function CourseAskAiButton({
 
   return (
     <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className={cn(
-                  // Mobile: ghost icon like Share. sm+: labeled outline matching Upload h-8.
-                  "size-9 shrink-0 text-muted-foreground hover:text-foreground",
-                  "sm:h-8 sm:w-auto sm:gap-1.5 sm:border sm:border-border sm:bg-background sm:px-2.5 sm:shadow-xs sm:hover:bg-muted sm:hover:text-foreground",
-                  "dark:sm:border-input dark:sm:bg-input/30 dark:sm:hover:bg-input/50",
-                  className
-                )}
-                onClick={() => setOpen(true)}
-                aria-label={`Ask AI about ${courseName}`}
-              />
-            }
-          >
-            <Wand2 className="size-3.5" strokeWidth={1.75} />
-            <span className="hidden text-[13px] font-medium sm:inline">
-              Ask AI
-            </span>
-          </TooltipTrigger>
-          <TooltipContent className="sm:hidden">
-            Ask AI about this course
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn(
+          "h-9 shrink-0 gap-1.5 px-2.5 text-muted-foreground hover:text-foreground sm:h-8",
+          className
+        )}
+        onClick={() => setOpen(true)}
+        aria-label={`Ask AI about ${courseName}`}
+      >
+        <Wand2 className="size-3.5" strokeWidth={1.75} />
+        <span className="text-[13px] font-medium sm:hidden">AI</span>
+        <span className="hidden text-[13px] font-medium sm:inline">Ask AI</span>
+      </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="gap-5 sm:max-w-md">

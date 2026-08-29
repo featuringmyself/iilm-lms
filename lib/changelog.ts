@@ -36,7 +36,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "added",
-        text: "Course-level Ask AI in the tabs toolbar next to Upload — wand icon on mobile, labeled button on desktop; lists every course file with your question to ChatGPT.",
+        text: "Course-level Ask AI in the tabs toolbar next to Upload — “AI” on mobile, “Ask AI” on desktop; lists every course file with your question to ChatGPT.",
       },
       {
         kind: "fixed",

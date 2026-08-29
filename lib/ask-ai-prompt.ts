@@ -1,6 +1,13 @@
 const MAX_PROMPT_LENGTH = 1900;
 /** Only truncate the student question when it alone exceeds this. */
 const MAX_QUESTION_CHARS = 800;
+/**
+ * Cap for file (and optionally course) names in the packed prompt.
+ * Full names stay in the UI; only the ChatGPT `?q=` string shortens.
+ */
+const MAX_FILE_NAME_CHARS = 64;
+/** Soft cap for course titles in the prompt header. */
+const MAX_COURSE_NAME_CHARS = 72;
 
 const SHORTENED_NOTE =
   "(Question was shortened to fit the chat handoff limit.)";
@@ -63,14 +70,36 @@ function clampStudentQuestion(question: string): string {
   return `${head}\n…\n${SHORTENED_NOTE}`;
 }
 
+/**
+ * Middle-ellipsis shorten for prompt packing. Leaves short names alone;
+ * preserves a useful tail (extension / distinctive ending).
+ */
+export function shortenFileName(
+  name: string,
+  maxLen: number = MAX_FILE_NAME_CHARS
+): string {
+  if (name.length <= maxLen) return name;
+  if (maxLen <= 1) return "…";
+  if (maxLen <= 3) return `${name.slice(0, maxLen - 1)}…`;
+
+  const ellipsis = "…";
+  const budget = maxLen - ellipsis.length;
+  // ~2/3 head + ~1/3 tail so extensions and endings stay readable.
+  const keepEnd = Math.max(4, Math.floor(budget / 3));
+  const keepStart = budget - keepEnd;
+
+  return `${name.slice(0, keepStart)}${ellipsis}${name.slice(-keepEnd)}`;
+}
+
 function courseHeader(
   courseName: string,
   semesterName: string,
   courseUrl: string
 ): string {
+  const displayCourse = shortenFileName(courseName, MAX_COURSE_NAME_CHARS);
   return `You are a careful tutor for an IILM undergraduate student.
 
-Course: ${courseName} (${semesterName})
+Course: ${displayCourse} (${semesterName})
 Course library URL: ${courseUrl}`;
 }
 
@@ -81,10 +110,12 @@ function fileHeader(
   fileUrl: string,
   courseUrl: string
 ): string {
+  const displayCourse = shortenFileName(courseName, MAX_COURSE_NAME_CHARS);
+  const displayFile = shortenFileName(fileName);
   return `You are a careful tutor for an IILM undergraduate student.
 
-Course: ${courseName} (${semesterName})
-Primary file: "${fileName}"
+Course: ${displayCourse} (${semesterName})
+Primary file: "${displayFile}"
 File URL: ${fileUrl}
 Course library URL: ${courseUrl}`;
 }
@@ -134,10 +165,11 @@ function orderedCourseFiles(files: AskAiCourseFile[]): AskAiCourseFile[] {
 }
 
 function formatFileLine(file: AskAiCourseFile, withUrl: boolean): string {
+  const displayName = shortenFileName(file.name);
   if (withUrl) {
-    return `- "${file.name}" — ${file.url}`;
+    return `- "${displayName}" — ${file.url}`;
   }
-  return `- "${file.name}"`;
+  return `- "${displayName}"`;
 }
 
 /**
@@ -255,7 +287,8 @@ export function buildAskAiPrompt({
 /**
  * Builds a curated ChatGPT `?q=` prompt for a whole course (all files).
  *
- * Pack priority (never gut the question; always keep file names):
+ * Pack priority (never gut the question; always keep every file, names
+ * middle-ellipsis shortened for budget):
  * a/b/c header + full question + all names, then d URLs, e omit-note, f how-to.
  * Over budget: drop URLs first, then shrink/drop how-to — never replace the
  * question with "…". Question alone is only clamped at ~800 chars.

@@ -165,7 +165,7 @@ export function CourseContentTabs({
             ) : null}
           </TabsList>
 
-          <div className="flex w-full items-center gap-1.5 sm:w-auto sm:justify-end sm:gap-2">
+          <div className="flex w-full items-center justify-end gap-1.5 sm:w-auto sm:gap-2">
             {hasFiles ? (
               <div className="relative min-w-0 flex-1 sm:w-52 sm:flex-none">
                 <Search
@@ -197,13 +197,7 @@ export function CourseContentTabs({
             ) : null}
             <UploadFileButton
               upload={upload}
-              className={
-                hasFiles
-                  ? "shrink-0"
-                  : hasCourseFiles
-                    ? "min-w-0 flex-1 sm:flex-none sm:w-auto"
-                    : "w-full sm:w-auto"
-              }
+              className="shrink-0"
             />
           </div>
         </div>

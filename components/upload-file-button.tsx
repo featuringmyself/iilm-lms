@@ -61,16 +61,19 @@ export function UploadFileButton({ upload, className }: UploadFileButtonProps) {
         type="button"
         variant="outline"
         size="sm"
-        className="h-10 w-full justify-center sm:h-8 sm:w-auto"
+        className="size-9 shrink-0 justify-center px-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
         disabled={uploading}
         onClick={openPicker}
+        aria-label={uploading ? "Uploading…" : label}
       >
         {uploading ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
           <Upload className="size-4" strokeWidth={1.75} />
         )}
-        {uploading ? "Uploading…" : label}
+        <span className="hidden sm:inline">
+          {uploading ? "Uploading…" : label}
+        </span>
       </Button>
 
       <Dialog
