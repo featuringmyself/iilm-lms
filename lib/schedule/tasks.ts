@@ -18,24 +18,24 @@ export interface ScheduleTask {
 /** Homework & reminders for 1CSE3 · Odd semester 2026–27 */
 export const scheduleTasks: ScheduleTask[] = [
   {
-    id: "hw-physics-notes-schrodinger",
+    id: "hw-physics-revise-practical-mon",
     type: "homework",
-    title: "Notes up to Schrödinger wave equation",
+    title: "Revise for test + practical file",
     description:
-      "Make notes covering all topics taught so far, up to the Schrödinger wave equation.",
-    dueAt: "2026-08-26T15:25:00+05:30",
+      "Revise all topics covered for the test, and complete the practical file.",
+    dueAt: "2026-08-31T13:35:00+05:30",
     courseCode: "26SOST101",
     courseName: "Semiconductor and Quantum Physics",
   },
   {
-    id: "hw-prog-c-notes-algorithm",
+    id: "hw-pce-prepare-topics-mon",
     type: "homework",
-    title: "Notes up to Algorithms",
+    title: "Prepare four topics",
     description:
-      "Complete notes through the Algorithm topic. Refer to the uploaded PDF.",
-    dueAt: "2026-08-26T16:20:00+05:30",
-    courseCode: "26CSEC108",
-    courseName: "Programming in C",
+      "Prepare: Use of AI in Everyday Life, Sustainability, AI in Education, and Climate Change.",
+    dueAt: "2026-08-31T14:30:00+05:30",
+    courseCode: "26CCSS105",
+    courseName: "Professional Communication for Engineers",
   },
   {
     id: "hw-cdt-complete-notes",
@@ -59,8 +59,9 @@ export const scheduleTasks: ScheduleTask[] = [
 ];
 
 export function getHomework(): ScheduleTask[] {
+  const now = new Date();
   return scheduleTasks
-    .filter((t) => t.type === "homework")
+    .filter((t) => t.type === "homework" && !isTaskOverdue(t, now))
     .sort(byDueAtAsc);
 }
 
@@ -139,8 +140,8 @@ export function getTaskUrgency(
 }
 
 /**
- * Next incomplete upcoming items (homework + reminders), overdue first,
- * then soonest due. Caller may filter completed homework via localStorage.
+ * Next incomplete upcoming items (homework + reminders), soonest due first.
+ * Past-due items drop off. Caller may filter completed homework via localStorage.
  */
 export function getDueSoon(
   limit = 2,
@@ -151,17 +152,11 @@ export function getDueSoon(
 
   const open = scheduleTasks.filter((t) => {
     if (exclude?.has(t.id)) return false;
-    // Reminders past due drop off; overdue homework still surfaces
-    if (t.type === "reminder" && isTaskOverdue(t, now)) return false;
+    if (isTaskOverdue(t, now)) return false;
     return true;
   });
 
-  open.sort((a, b) => {
-    const aOver = isTaskOverdue(a, now) ? 0 : 1;
-    const bOver = isTaskOverdue(b, now) ? 0 : 1;
-    if (aOver !== bOver) return aOver - bOver;
-    return byDueAtAsc(a, b);
-  });
+  open.sort(byDueAtAsc);
 
   return open.slice(0, limit);
 }

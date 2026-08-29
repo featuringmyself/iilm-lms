@@ -90,8 +90,12 @@ function TaskMeta({ task }: { task: ScheduleTask }) {
 
 function HomeworkList({ items }: { items: ScheduleTask[] }) {
   const { isCompleted, toggle } = useCompletedHomework();
+  const upcoming = items.filter((t) => getTaskUrgency(t) !== "overdue");
+  const open = upcoming.filter((t) => !isCompleted(t.id));
+  const done = upcoming.filter((t) => isCompleted(t.id));
+  const ordered = [...open, ...done];
 
-  if (items.length === 0) {
+  if (upcoming.length === 0) {
     return (
       <EmptyState
         icon={ClipboardList}
@@ -99,10 +103,6 @@ function HomeworkList({ items }: { items: ScheduleTask[] }) {
       />
     );
   }
-
-  const open = items.filter((t) => !isCompleted(t.id));
-  const done = items.filter((t) => isCompleted(t.id));
-  const ordered = [...open, ...done];
 
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
@@ -247,7 +247,9 @@ function ReminderList({ items }: { items: ScheduleTask[] }) {
 
 export function ScheduleView({ homework, reminders }: ScheduleViewProps) {
   const { completed } = useCompletedHomework();
-  const openHomeworkCount = homework.filter((t) => !completed.has(t.id)).length;
+  const openHomeworkCount = homework.filter(
+    (t) => !completed.has(t.id) && getTaskUrgency(t) !== "overdue"
+  ).length;
   const upcomingReminderCount = reminders.filter(
     (t) => getTaskUrgency(t) !== "overdue"
   ).length;
