@@ -8,7 +8,7 @@ import {
   type PutBlobResult,
 } from "@vercel/blob";
 
-export type ContentUploadKind = "materials" | "notes";
+export type ContentUploadKind = "materials" | "notes" | "pyq";
 
 /** True when a Blob read/write token is configured (Hobby free tier OK). */
 export function isBlobConfigured(): boolean {
@@ -27,6 +27,7 @@ export function isSafeContentSlug(slug: string): boolean {
  * Pathname convention mirroring public/content layout, using URL slugs:
  * - materials: content/{semesterSlug}/{courseSlug}/{filename}
  * - notes:     content/{semesterSlug}/{courseSlug}/notes/{filename}
+ * - pyq:       content/{semesterSlug}/{courseSlug}/pyq/{filename}
  */
 export function buildContentBlobPathname(
   semesterSlug: string,
@@ -35,7 +36,9 @@ export function buildContentBlobPathname(
   kind: ContentUploadKind
 ): string {
   const base = `content/${semesterSlug}/${courseSlug}`;
-  return kind === "notes" ? `${base}/notes/${fileName}` : `${base}/${fileName}`;
+  if (kind === "notes") return `${base}/notes/${fileName}`;
+  if (kind === "pyq") return `${base}/pyq/${fileName}`;
+  return `${base}/${fileName}`;
 }
 
 export async function listContentBlobs(): Promise<ListBlobResultBlob[]> {

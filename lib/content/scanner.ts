@@ -14,6 +14,7 @@ import {
 } from "./slug";
 
 const NOTES_DIR_NAME = "notes";
+const PYQ_DIR_NAME = "pyq";
 const BLOB_CONTENT_PREFIX = "content/";
 
 function toFileExtension(ext: string): FileExtension {
@@ -58,8 +59,12 @@ function buildTreeTotals(semesters: Semester[]): ContentTree {
     (sum, s) => sum + s.courses.reduce((cSum, c) => cSum + c.notes.length, 0),
     0
   );
+  const totalPyq = semesters.reduce(
+    (sum, s) => sum + s.courses.reduce((cSum, c) => cSum + c.pyq.length, 0),
+    0
+  );
 
-  return { semesters, totalCourses, totalMaterials, totalNotes };
+  return { semesters, totalCourses, totalMaterials, totalNotes, totalPyq };
 }
 
 function scanDocumentsInDir(dir: string, slugSet: Set<string>): Document[] {
@@ -106,20 +111,27 @@ function scanCourses(semesterDir: string): Course[] {
 
     const courseDir = path.join(semesterDir, entry.name);
     const slugSet = new Set<string>();
-    // Materials: files in course root only (notes/ dir is skipped via isFile()).
+    // Materials: files in course root only (notes/ and pyq/ skipped via isFile()).
     const documents = scanDocumentsInDir(courseDir, slugSet);
     const notes = scanDocumentsInDir(
       path.join(courseDir, NOTES_DIR_NAME),
       slugSet
     );
+    const pyq = scanDocumentsInDir(
+      path.join(courseDir, PYQ_DIR_NAME),
+      slugSet
+    );
 
-    if (documents.length === 0 && notes.length === 0) continue;
+    if (documents.length === 0 && notes.length === 0 && pyq.length === 0) {
+      continue;
+    }
 
     courses.push({
       slug: slugify(entry.name),
       name: entry.name,
       documents,
       notes,
+      pyq,
     });
   }
 
@@ -157,6 +169,7 @@ type CourseBucket = {
   name: string;
   materials: ListBlobResultBlob[];
   notes: ListBlobResultBlob[];
+  pyq: ListBlobResultBlob[];
 };
 
 function documentsFromBlobs(
@@ -187,7 +200,7 @@ function documentsFromBlobs(
   return documents;
 }
 
-/** Discover course materials/notes from Vercel Blob under content/. */
+/** Discover course materials/notes/pyq from Vercel Blob under content/. */
 export async function scanBlobContentTree(): Promise<ContentTree> {
   const blobs = await listContentBlobs();
   const semesterMap = new Map<
@@ -205,17 +218,21 @@ export async function scanBlobContentTree(): Promise<ContentTree> {
     const [semesterSlug, courseSlug, ...rest] = parts;
     if (!semesterSlug || !courseSlug || rest.length === 0) continue;
 
-    let isNotes = false;
+    let section: "materials" | "notes" | "pyq" = "materials";
     let fileName: string;
 
     if (rest[0] === NOTES_DIR_NAME) {
       if (rest.length !== 2) continue;
-      isNotes = true;
+      section = "notes";
+      fileName = rest[1]!;
+    } else if (rest[0] === PYQ_DIR_NAME) {
+      if (rest.length !== 2) continue;
+      section = "pyq";
       fileName = rest[1]!;
     } else if (rest.length === 1) {
       fileName = rest[0]!;
     } else {
-      // Nested paths outside notes/ are ignored.
+      // Nested paths outside notes/ and pyq/ are ignored.
       continue;
     }
 
@@ -238,11 +255,13 @@ export async function scanBlobContentTree(): Promise<ContentTree> {
         name: nameFromSlug(courseSlug) || courseSlug,
         materials: [],
         notes: [],
+        pyq: [],
       };
       semester.courses.set(courseSlug, course);
     }
 
-    if (isNotes) course.notes.push(blob);
+    if (section === "notes") course.notes.push(blob);
+    else if (section === "pyq") course.pyq.push(blob);
     else course.materials.push(blob);
   }
 
@@ -255,13 +274,17 @@ export async function scanBlobContentTree(): Promise<ContentTree> {
       const slugSet = new Set<string>();
       const documents = documentsFromBlobs(course.materials, slugSet);
       const notes = documentsFromBlobs(course.notes, slugSet);
-      if (documents.length === 0 && notes.length === 0) continue;
+      const pyq = documentsFromBlobs(course.pyq, slugSet);
+      if (documents.length === 0 && notes.length === 0 && pyq.length === 0) {
+        continue;
+      }
 
       courses.push({
         slug: courseSlug,
         name: course.name,
         documents,
         notes,
+        pyq,
       });
     }
 
@@ -322,6 +345,7 @@ export function mergeContentTrees(
         ...course,
         documents: [...course.documents],
         notes: [...course.notes],
+        pyq: [...course.pyq],
       })),
     });
   }
@@ -335,6 +359,7 @@ export function mergeContentTrees(
           ...course,
           documents: [...course.documents],
           notes: [...course.notes],
+          pyq: [...course.pyq],
         })),
       });
       continue;
@@ -351,6 +376,7 @@ export function mergeContentTrees(
           ...blobCourse,
           documents: [...blobCourse.documents],
           notes: [...blobCourse.notes],
+          pyq: [...blobCourse.pyq],
         });
         continue;
       }
@@ -364,6 +390,11 @@ export function mergeContentTrees(
       localCourse.notes = mergeDocuments(
         localCourse.notes,
         blobCourse.notes,
+        slugSet
+      );
+      localCourse.pyq = mergeDocuments(
+        localCourse.pyq,
+        blobCourse.pyq,
         slugSet
       );
     }

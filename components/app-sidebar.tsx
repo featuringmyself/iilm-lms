@@ -52,6 +52,8 @@ export async function AppSidebar() {
           <span className="mx-1.5 text-border">·</span>
           {tree.totalNotes} note{tree.totalNotes === 1 ? "" : "s"}
           <span className="mx-1.5 text-border">·</span>
+          {tree.totalPyq} PYQ
+          <span className="mx-1.5 text-border">·</span>
           <Link
             href="/changelog"
             className="transition-colors hover:text-sidebar-foreground"

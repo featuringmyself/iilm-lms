@@ -16,9 +16,12 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
   const Icon = theme.icon;
 
   const noteCount = course.notes.length;
-  const typeCounts = [...course.documents, ...course.notes].reduce<
-    Record<string, number>
-  >((acc, doc) => {
+  const pyqCount = course.pyq.length;
+  const typeCounts = [
+    ...course.documents,
+    ...course.notes,
+    ...course.pyq,
+  ].reduce<Record<string, number>>((acc, doc) => {
     acc[doc.extension] = (acc[doc.extension] ?? 0) + 1;
     return acc;
   }, {});
@@ -60,6 +63,12 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
             <>
               <span className="mx-1.5 text-border">·</span>
               {noteCount} note{noteCount === 1 ? "" : "s"}
+            </>
+          ) : null}
+          {pyqCount > 0 ? (
+            <>
+              <span className="mx-1.5 text-border">·</span>
+              {pyqCount} PYQ
             </>
           ) : null}
         </p>

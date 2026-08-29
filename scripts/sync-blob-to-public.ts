@@ -1,5 +1,5 @@
 /**
- * Pull course materials/notes from Vercel Blob into public/content/, then
+ * Pull course materials/notes/pyq from Vercel Blob into public/content/, then
  * delete them from Blob to free storage. Uploads keep writing to Blob for
  * instant availability; run this periodically and commit/deploy public/.
  *
@@ -22,6 +22,7 @@ import { getExtension, slugify } from "../lib/content/slug";
 
 const BLOB_CONTENT_PREFIX = "content/";
 const NOTES_DIR_NAME = "notes";
+const PYQ_DIR_NAME = "pyq";
 const DELETE_BATCH_SIZE = 50;
 
 type CliOptions = {
@@ -103,12 +104,16 @@ function resolveLocalPath(pathname: string): string | null {
   const [semesterSlug, courseSlug, ...rest] = parts;
   if (!semesterSlug || !courseSlug || rest.length === 0) return null;
 
-  let isNotes = false;
+  let subdir: string | null = null;
   let fileName: string;
 
   if (rest[0] === NOTES_DIR_NAME) {
     if (rest.length !== 2) return null;
-    isNotes = true;
+    subdir = NOTES_DIR_NAME;
+    fileName = rest[1]!;
+  } else if (rest[0] === PYQ_DIR_NAME) {
+    if (rest.length !== 2) return null;
+    subdir = PYQ_DIR_NAME;
     fileName = rest[1]!;
   } else if (rest.length === 1) {
     fileName = rest[0]!;
@@ -130,8 +135,8 @@ function resolveLocalPath(pathname: string): string | null {
   const courseName = resolveDirName(courseSlug, courseDirs, nameFromSlug);
   const courseDir = path.join(semesterDir, courseName);
 
-  return isNotes
-    ? path.join(courseDir, NOTES_DIR_NAME, fileName)
+  return subdir
+    ? path.join(courseDir, subdir, fileName)
     : path.join(courseDir, fileName);
 }
 

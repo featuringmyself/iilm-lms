@@ -19,6 +19,8 @@ export interface Course {
   documents: Document[];
   /** Notes stored under `{course}/notes/`. */
   notes: Document[];
+  /** Previous year questions under `{course}/pyq/`. */
+  pyq: Document[];
 }
 
 export interface Semester {
@@ -31,10 +33,12 @@ export interface Semester {
 export interface ContentTree {
   semesters: Semester[];
   totalCourses: number;
-  /** Files in course folder roots (excludes notes/). */
+  /** Files in course folder roots (excludes notes/ and pyq/). */
   totalMaterials: number;
   /** Files in course notes/ subfolders. */
   totalNotes: number;
+  /** Files in course pyq/ subfolders. */
+  totalPyq: number;
 }
 
 export interface ContentStats {
@@ -42,4 +46,5 @@ export interface ContentStats {
   courses: number;
   materials: number;
   notes: number;
+  pyq: number;
 }

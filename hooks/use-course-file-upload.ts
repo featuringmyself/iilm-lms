@@ -13,13 +13,25 @@ import {
   SUPPORTED_EXTENSIONS,
 } from "@/lib/content/supported-extensions";
 
-export type UploadKind = "materials" | "notes";
+export type UploadKind = "materials" | "notes" | "pyq";
 
 export const NAME_COLLISION_ERROR =
   "A file with this name already exists. Choose a different name.";
 
 /** Ignore dismiss events briefly after the native file picker closes. */
 const FILE_PICKER_DISMISS_GUARD_MS = 600;
+
+const DESTINATION_LABEL: Record<UploadKind, string> = {
+  materials: "this course's materials",
+  notes: "this course's notes",
+  pyq: "this course's PYQ",
+};
+
+const UPLOAD_LABEL: Record<UploadKind, string> = {
+  materials: "Upload file",
+  notes: "Upload note",
+  pyq: "Upload PYQ",
+};
 
 function extensionOf(filename: string): string {
   const base = filename.replace(/^.*[/\\]/, "");
@@ -47,7 +59,7 @@ interface UseCourseFileUploadOptions {
   semesterSlug: string;
   courseSlug: string;
   kind?: UploadKind;
-  /** Filenames already present in the active folder (materials or notes). */
+  /** Filenames already present in the active folder (materials, notes, or pyq). */
   existingFileNames?: string[];
   /** Optional map used when destination is frozen after offer. */
   existingFileNamesByKind?: Record<UploadKind, string[]>;
@@ -209,9 +221,8 @@ export function useCourseFileUpload({
 
   const previewName = `${stem.trim() || "untitled"}${extension}`;
   const activeKind = dialogOpen ? pendingKind : kind;
-  const destination =
-    activeKind === "notes" ? "this course's notes" : "this course's materials";
-  const label = kind === "notes" ? "Upload note" : "Upload file";
+  const destination = DESTINATION_LABEL[activeKind];
+  const label = UPLOAD_LABEL[kind];
 
   return {
     inputRef,

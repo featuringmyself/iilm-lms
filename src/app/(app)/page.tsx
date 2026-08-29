@@ -34,16 +34,20 @@ export default async function DashboardPage() {
     .flatMap((semester) =>
       semester.courses.map((course) => ({ semester, course }))
     )
-    .sort(
-      (a, b) =>
-        b.course.documents.length +
-        b.course.notes.length -
-        (a.course.documents.length + a.course.notes.length)
-    );
+    .sort((a, b) => {
+      const bTotal =
+        b.course.documents.length + b.course.notes.length + b.course.pyq.length;
+      const aTotal =
+        a.course.documents.length + a.course.notes.length + a.course.pyq.length;
+      return bTotal - aTotal;
+    });
 
   const quickLinkCourses = coursesWithMaterials
     .filter(
-      ({ course }) => course.documents.length > 0 || course.notes.length > 0
+      ({ course }) =>
+        course.documents.length > 0 ||
+        course.notes.length > 0 ||
+        course.pyq.length > 0
     )
     .slice(0, QUICK_LINK_COURSE_LIMIT);
 

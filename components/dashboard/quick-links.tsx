@@ -85,6 +85,9 @@ export function QuickLinks({ courses }: QuickLinksProps) {
                         course.notes.length === 1 ? "" : "s"
                       }`
                     : ""}
+                  {course.pyq.length > 0
+                    ? ` · ${course.pyq.length} PYQ`
+                    : ""}
                 </p>
               </div>
               <ArrowUpRight

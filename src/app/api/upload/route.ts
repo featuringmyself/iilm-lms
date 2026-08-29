@@ -23,17 +23,17 @@ import {
   contentTypeForExtension,
 } from "@/lib/content/supported-extensions";
 
-export type UploadKind = "materials" | "notes";
+export type UploadKind = "materials" | "notes" | "pyq";
 
 function parseUploadKind(value: FormDataEntryValue | null): UploadKind | null {
-  if (value === "materials" || value === "notes") return value;
+  if (value === "materials" || value === "notes" || value === "pyq") return value;
   // Back-compat: older clients without kind upload to materials.
   if (value === null || value === "") return "materials";
   return null;
 }
 
 /**
- * Uploads course materials/notes.
+ * Uploads course materials/notes/pyq.
  * - When `BLOB_READ_WRITE_TOKEN` is set: stores in Vercel Blob (persists on Vercel).
  * - Otherwise: writes to public/content/ (local/dev only; does not persist on serverless).
  */
@@ -117,9 +117,13 @@ export async function POST(request: Request) {
     }
 
     const targetDir =
-      kind === "notes" ? path.join(courseDir, "notes") : courseDir;
+      kind === "notes"
+        ? path.join(courseDir, "notes")
+        : kind === "pyq"
+          ? path.join(courseDir, "pyq")
+          : courseDir;
 
-    if (kind === "notes" && !existsSync(targetDir)) {
+    if ((kind === "notes" || kind === "pyq") && !existsSync(targetDir)) {
       await mkdir(targetDir, { recursive: true });
     }
 

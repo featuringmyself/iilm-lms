@@ -24,6 +24,23 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-08-29-pyq-section",
+    date: "2026-08-29",
+    title: "PYQ section",
+    summary:
+      "Previous year questions live in their own course folder and tab, alongside Materials and Notes.",
+    items: [
+      {
+        kind: "added",
+        text: "PYQ tab on course pages for previous year questions and midterms.",
+      },
+      {
+        kind: "changed",
+        text: "Store PYQ files under each course's pyq/ directory, separate from materials and notes.",
+      },
+    ],
+  },
+  {
     id: "2026-08-29-image-uploads",
     date: "2026-08-29",
     title: "Image uploads",

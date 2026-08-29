@@ -20,7 +20,14 @@ interface CourseContentTabsProps {
   courseSlug: string;
   materials: Document[];
   notes: Document[];
+  pyq: Document[];
 }
+
+const TAB_DROP_LABEL: Record<UploadKind, string> = {
+  materials: "materials",
+  notes: "notes",
+  pyq: "PYQ",
+};
 
 function TabCount({ count }: { count: number }) {
   return (
@@ -30,19 +37,27 @@ function TabCount({ count }: { count: number }) {
   );
 }
 
+function isUploadKind(value: string): value is UploadKind {
+  return value === "materials" || value === "notes" || value === "pyq";
+}
+
 export function CourseContentTabs({
   semesterSlug,
   courseSlug,
   materials,
   notes,
+  pyq,
 }: CourseContentTabsProps) {
   const [tab, setTab] = useState<UploadKind>("materials");
   const [dropError, setDropError] = useState<string | null>(null);
 
-  const existingFileNames =
-    tab === "materials"
-      ? materials.map((doc) => doc.fileName)
-      : notes.map((doc) => doc.fileName);
+  const filesByKind: Record<UploadKind, Document[]> = {
+    materials,
+    notes,
+    pyq,
+  };
+
+  const existingFileNames = filesByKind[tab].map((doc) => doc.fileName);
 
   const upload = useCourseFileUpload({
     semesterSlug,
@@ -52,6 +67,7 @@ export function CourseContentTabs({
     existingFileNamesByKind: {
       materials: materials.map((doc) => doc.fileName),
       notes: notes.map((doc) => doc.fileName),
+      pyq: pyq.map((doc) => doc.fileName),
     },
   });
 
@@ -69,7 +85,7 @@ export function CourseContentTabs({
     <Tabs
       value={tab}
       onValueChange={(value) => {
-        if (value === "materials" || value === "notes") {
+        if (isUploadKind(value)) {
           posthog.capture("course_tab_switched", {
             tab: value,
             semester_slug: semesterSlug,
@@ -97,6 +113,13 @@ export function CourseContentTabs({
             Notes
             <TabCount count={notes.length} />
           </TabsTrigger>
+          <TabsTrigger
+            value="pyq"
+            className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
+          >
+            PYQ
+            <TabCount count={pyq.length} />
+          </TabsTrigger>
         </TabsList>
 
         <UploadFileButton upload={upload} className="w-full sm:w-auto" />
@@ -109,7 +132,7 @@ export function CourseContentTabs({
       ) : null}
 
       <FileDropZone
-        label={tab === "notes" ? "notes" : "materials"}
+        label={TAB_DROP_LABEL[tab]}
         disabled={upload.uploading || upload.dialogOpen}
         onDropFiles={handleDropFiles}
       >
@@ -131,6 +154,17 @@ export function CourseContentTabs({
             courseSlug={courseSlug}
             emptyTitle="No notes yet"
             emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
+            emptyHint="Supported · PDF · PPTX · DOCX · Images"
+          />
+        </TabsContent>
+
+        <TabsContent value="pyq" className="mt-0 outline-none">
+          <DocumentTable
+            documents={pyq}
+            semesterSlug={semesterSlug}
+            courseSlug={courseSlug}
+            emptyTitle="No PYQ yet"
+            emptyDescription="Drop a file here or use Upload — previous year questions and midterms stay separate from materials and notes."
             emptyHint="Supported · PDF · PPTX · DOCX · Images"
           />
         </TabsContent>
