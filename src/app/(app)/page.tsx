@@ -99,9 +99,6 @@ export default async function DashboardPage() {
           <h2 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
             All courses
           </h2>
-          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            {stats.courses} total
-          </span>
         </div>
 
         {tree.semesters.map((semester) => (
