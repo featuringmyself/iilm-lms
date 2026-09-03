@@ -7,7 +7,7 @@ import posthog from "posthog-js";
 import { CourseAskAiButton } from "@/components/course-ask-ai-button";
 import { DocumentTable } from "@/components/document-table";
 import { FileDropZone } from "@/components/file-drop-zone";
-import { UploadFileButton } from "@/components/upload-file-button";
+// import { UploadFileButton } from "@/components/upload-file-button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -195,10 +195,10 @@ export function CourseContentTabs({
             {hasCourseFiles ? (
               <CourseAskAiButton {...askAiProps} className="shrink-0" />
             ) : null}
-            <UploadFileButton
+            {/* <UploadFileButton
               upload={upload}
               className="shrink-0"
-            />
+            /> */}
           </div>
         </div>
 
