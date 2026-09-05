@@ -33,10 +33,11 @@ function toAbsoluteUrl(url: string): string {
 const KIND_LABEL: Record<AskAiFileKind, string> = {
   material: "Material",
   note: "Note",
+  lab: "Lab",
   pyq: "PYQ",
 };
 
-const KIND_ORDER: AskAiFileKind[] = ["material", "note", "pyq"];
+const KIND_ORDER: AskAiFileKind[] = ["material", "note", "lab", "pyq"];
 
 interface CourseAskAiButtonProps {
   courseName: string;
@@ -45,6 +46,7 @@ interface CourseAskAiButtonProps {
   courseSlug: string;
   materials: Document[];
   notes: Document[];
+  labs: Document[];
   pyq: Document[];
   className?: string;
 }
@@ -59,6 +61,7 @@ interface ListedFile {
 function toListedFiles(
   materials: Document[],
   notes: Document[],
+  labs: Document[],
   pyq: Document[]
 ): ListedFile[] {
   const mapDoc = (doc: Document, kind: AskAiFileKind): ListedFile => ({
@@ -71,6 +74,7 @@ function toListedFiles(
   return [
     ...materials.map((doc) => mapDoc(doc, "material")),
     ...notes.map((doc) => mapDoc(doc, "note")),
+    ...labs.map((doc) => mapDoc(doc, "lab")),
     ...pyq.map((doc) => mapDoc(doc, "pyq")),
   ];
 }
@@ -82,6 +86,7 @@ export function CourseAskAiButton({
   courseSlug,
   materials,
   notes,
+  labs,
   pyq,
   className,
 }: CourseAskAiButtonProps) {
@@ -90,8 +95,8 @@ export function CourseAskAiButton({
   const [question, setQuestion] = useState("");
 
   const listedFiles = useMemo(
-    () => toListedFiles(materials, notes, pyq),
-    [materials, notes, pyq]
+    () => toListedFiles(materials, notes, labs, pyq),
+    [materials, notes, labs, pyq]
   );
 
   const filesByKind = useMemo(() => {

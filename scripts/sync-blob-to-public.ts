@@ -1,5 +1,5 @@
 /**
- * Pull course materials/notes/pyq from Vercel Blob into public/content/, then
+ * Pull course materials/notes/pyq/lab from Vercel Blob into public/content/, then
  * delete them from Blob to free storage. Uploads keep writing to Blob for
  * instant availability; run this periodically and commit/deploy public/.
  *
@@ -17,7 +17,7 @@ import {
   isBlobConfigured,
   listContentBlobs,
 } from "../lib/content/blob";
-import { CONTENT_DIR, SUPPORTED_EXTENSIONS } from "../lib/content/constants";
+import { CONTENT_DIR, LAB_DIR_NAME, SUPPORTED_EXTENSIONS } from "../lib/content/constants";
 import { getExtension, slugify } from "../lib/content/slug";
 
 const BLOB_CONTENT_PREFIX = "content/";
@@ -88,6 +88,18 @@ function resolveDirName(
   return existing.get(slug) ?? createName(slug);
 }
 
+function resolveExistingLabDirName(courseDir: string): string | null {
+  if (!fs.existsSync(courseDir)) return null;
+
+  for (const entry of fs.readdirSync(courseDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.toLowerCase() === "lab") {
+      return entry.name;
+    }
+  }
+
+  return null;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -115,6 +127,10 @@ function resolveLocalPath(pathname: string): string | null {
     if (rest.length !== 2) return null;
     subdir = PYQ_DIR_NAME;
     fileName = rest[1]!;
+  } else if (rest[0]?.toLowerCase() === "lab") {
+    if (rest.length !== 2) return null;
+    subdir = LAB_DIR_NAME;
+    fileName = rest[1]!;
   } else if (rest.length === 1) {
     fileName = rest[0]!;
   } else {
@@ -134,6 +150,11 @@ function resolveLocalPath(pathname: string): string | null {
   const courseDirs = buildSlugToDirMap(semesterDir);
   const courseName = resolveDirName(courseSlug, courseDirs, nameFromSlug);
   const courseDir = path.join(semesterDir, courseName);
+
+  if (subdir && subdir.toLowerCase() === "lab") {
+    const existingLab = resolveExistingLabDirName(courseDir);
+    return path.join(courseDir, existingLab ?? LAB_DIR_NAME, fileName);
+  }
 
   return subdir
     ? path.join(courseDir, subdir, fileName)

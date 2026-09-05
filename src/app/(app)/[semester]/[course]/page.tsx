@@ -28,6 +28,7 @@ export default async function CoursePage({
 
   const materialCount = course.documents.length;
   const noteCount = course.notes.length;
+  const labCount = course.labs.length;
   const pyqCount = course.pyq.length;
   const descriptionParts = [
     semester.displayName,
@@ -35,6 +36,7 @@ export default async function CoursePage({
     noteCount > 0
       ? `${noteCount} note${noteCount === 1 ? "" : "s"}`
       : null,
+    labCount > 0 ? `${labCount} lab${labCount === 1 ? "" : "s"}` : null,
     pyqCount > 0 ? `${pyqCount} PYQ` : null,
   ].filter(Boolean);
 
@@ -51,6 +53,7 @@ export default async function CoursePage({
         semesterName={semester.displayName}
         materials={course.documents}
         notes={course.notes}
+        labs={course.labs}
         pyq={course.pyq}
       />
     </>

@@ -13,7 +13,7 @@ import {
   SUPPORTED_EXTENSIONS,
 } from "@/lib/content/supported-extensions";
 
-export type UploadKind = "materials" | "notes" | "pyq";
+export type UploadKind = "materials" | "notes" | "pyq" | "lab";
 
 export const NAME_COLLISION_ERROR =
   "A file with this name already exists. Choose a different name.";
@@ -25,12 +25,14 @@ const DESTINATION_LABEL: Record<UploadKind, string> = {
   materials: "this course's materials",
   notes: "this course's notes",
   pyq: "this course's PYQ",
+  lab: "this course's lab files",
 };
 
 const UPLOAD_LABEL: Record<UploadKind, string> = {
   materials: "Upload file",
   notes: "Upload note",
   pyq: "Upload PYQ",
+  lab: "Upload lab file",
 };
 
 function extensionOf(filename: string): string {
@@ -59,7 +61,7 @@ interface UseCourseFileUploadOptions {
   semesterSlug: string;
   courseSlug: string;
   kind?: UploadKind;
-  /** Filenames already present in the active folder (materials, notes, or pyq). */
+  /** Filenames already present in the active folder (materials, notes, pyq, or lab). */
   existingFileNames?: string[];
   /** Optional map used when destination is frozen after offer. */
   existingFileNamesByKind?: Record<UploadKind, string[]>;

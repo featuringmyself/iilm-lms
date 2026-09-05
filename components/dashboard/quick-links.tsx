@@ -85,6 +85,11 @@ export function QuickLinks({ courses }: QuickLinksProps) {
                         course.notes.length === 1 ? "" : "s"
                       }`
                     : ""}
+                  {course.labs.length > 0
+                    ? ` · ${course.labs.length} lab${
+                        course.labs.length === 1 ? "" : "s"
+                      }`
+                    : ""}
                   {course.pyq.length > 0
                     ? ` · ${course.pyq.length} PYQ`
                     : ""}

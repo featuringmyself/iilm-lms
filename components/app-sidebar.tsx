@@ -53,6 +53,12 @@ export async function AppSidebar() {
           {tree.totalNotes} note{tree.totalNotes === 1 ? "" : "s"}
           <span className="mx-1.5 text-border">·</span>
           {tree.totalPyq} PYQ
+          {tree.totalLabs > 0 ? (
+            <>
+              <span className="mx-1.5 text-border">·</span>
+              {tree.totalLabs} lab{tree.totalLabs === 1 ? "" : "s"}
+            </>
+          ) : null}
           <span className="mx-1.5 text-border">·</span>
           <Link
             href="/changelog"

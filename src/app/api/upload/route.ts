@@ -1,4 +1,4 @@
-import { existsSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { revalidatePath } from "next/cache";
@@ -11,6 +11,7 @@ import {
   isSafeContentSlug,
   putContentBlob,
 } from "@/lib/content/blob";
+import { LAB_DIR_NAME } from "@/lib/content/constants";
 import { getCourse } from "@/lib/content/lookup";
 import {
   getCourseDiskPath,
@@ -23,17 +24,36 @@ import {
   contentTypeForExtension,
 } from "@/lib/content/supported-extensions";
 
-export type UploadKind = "materials" | "notes" | "pyq";
+export type UploadKind = "materials" | "notes" | "pyq" | "lab";
 
 function parseUploadKind(value: FormDataEntryValue | null): UploadKind | null {
-  if (value === "materials" || value === "notes" || value === "pyq") return value;
+  if (
+    value === "materials" ||
+    value === "notes" ||
+    value === "pyq" ||
+    value === "lab"
+  )
+    return value;
   // Back-compat: older clients without kind upload to materials.
   if (value === null || value === "") return "materials";
   return null;
 }
 
+function resolveLabTargetDir(courseDir: string): string {
+  const fallback = path.join(courseDir, LAB_DIR_NAME);
+  if (!existsSync(courseDir)) return fallback;
+
+  for (const entry of readdirSync(courseDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name.toLowerCase() === "lab") {
+      return path.join(courseDir, entry.name);
+    }
+  }
+
+  return fallback;
+}
+
 /**
- * Uploads course materials/notes/pyq.
+ * Uploads course materials/notes/pyq/lab.
  * - When `BLOB_READ_WRITE_TOKEN` is set: stores in Vercel Blob (persists on Vercel).
  * - Otherwise: writes to public/content/ (local/dev only; does not persist on serverless).
  */
@@ -121,9 +141,14 @@ export async function POST(request: Request) {
         ? path.join(courseDir, "notes")
         : kind === "pyq"
           ? path.join(courseDir, "pyq")
-          : courseDir;
+          : kind === "lab"
+            ? resolveLabTargetDir(courseDir)
+            : courseDir;
 
-    if ((kind === "notes" || kind === "pyq") && !existsSync(targetDir)) {
+    if (
+      (kind === "notes" || kind === "pyq" || kind === "lab") &&
+      !existsSync(targetDir)
+    ) {
       await mkdir(targetDir, { recursive: true });
     }
 

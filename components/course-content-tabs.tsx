@@ -25,12 +25,14 @@ interface CourseContentTabsProps {
   semesterName: string;
   materials: Document[];
   notes: Document[];
+  labs: Document[];
   pyq: Document[];
 }
 
 const TAB_DROP_LABEL: Record<UploadKind, string> = {
   materials: "materials",
   notes: "notes",
+  lab: "lab files",
   pyq: "PYQ",
 };
 
@@ -43,7 +45,12 @@ function TabCount({ count }: { count: number }) {
 }
 
 function isUploadKind(value: string): value is UploadKind {
-  return value === "materials" || value === "notes" || value === "pyq";
+  return (
+    value === "materials" ||
+    value === "notes" ||
+    value === "lab" ||
+    value === "pyq"
+  );
 }
 
 function matchesQuery(doc: Document, query: string): boolean {
@@ -63,6 +70,7 @@ export function CourseContentTabs({
   semesterName,
   materials,
   notes,
+  labs,
   pyq,
 }: CourseContentTabsProps) {
   const [tab, setTab] = useState<UploadKind>("materials");
@@ -70,13 +78,15 @@ export function CourseContentTabs({
   const [query, setQuery] = useState("");
 
   const showNotes = notes.length > 0;
+  const showLabs = labs.length > 0;
   const showPyq = pyq.length > 0;
   const hasCourseFiles =
-    materials.length + notes.length + pyq.length > 0;
+    materials.length + notes.length + labs.length + pyq.length > 0;
 
   const filesByKind: Record<UploadKind, Document[]> = {
     materials,
     notes,
+    lab: labs,
     pyq,
   };
 
@@ -94,6 +104,7 @@ export function CourseContentTabs({
     existingFileNamesByKind: {
       materials: materials.map((doc) => doc.fileName),
       notes: notes.map((doc) => doc.fileName),
+      lab: labs.map((doc) => doc.fileName),
       pyq: pyq.map((doc) => doc.fileName),
     },
   });
@@ -115,6 +126,7 @@ export function CourseContentTabs({
     courseSlug,
     materials,
     notes,
+    labs,
     pyq,
   } as const;
 
@@ -152,6 +164,15 @@ export function CourseContentTabs({
               >
                 Notes
                 <TabCount count={notes.length} />
+              </TabsTrigger>
+            ) : null}
+            {showLabs ? (
+              <TabsTrigger
+                value="lab"
+                className="h-full flex-1 gap-1.5 px-3 text-[13px] sm:flex-none"
+              >
+                Lab
+                <TabCount count={labs.length} />
               </TabsTrigger>
             ) : null}
             {showPyq ? (
@@ -239,6 +260,22 @@ export function CourseContentTabs({
                 emptyDescription="Drop a file here or use Upload — keep personal or class notes separate from course materials."
                 emptyHint="Supported · PDF · PPTX · DOCX · Images"
                 filterQuery={tab === "notes" ? query : undefined}
+              />
+            </TabsContent>
+          ) : null}
+
+          {showLabs ? (
+            <TabsContent value="lab" className="mt-0 outline-none">
+              <DocumentTable
+                documents={tab === "lab" ? filteredDocs : labs}
+                semesterSlug={semesterSlug}
+                courseSlug={courseSlug}
+                courseName={courseName}
+                semesterName={semesterName}
+                emptyTitle="No lab files yet"
+                emptyDescription="Drop a file here or use Upload — lab manuals and experiment sheets stay separate from materials and notes."
+                emptyHint="Supported · PDF · PPTX · DOCX · Images"
+                filterQuery={tab === "lab" ? query : undefined}
               />
             </TabsContent>
           ) : null}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import { getCourseTheme } from "@/lib/course-themes";
-import type { Course } from "@/lib/content";
+import { courseFileCount, type Course } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
 interface CourseCardProps {
@@ -16,9 +16,9 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
   const Icon = theme.icon;
 
   const noteCount = course.notes.length;
+  const labCount = course.labs.length;
   const pyqCount = course.pyq.length;
-  const fileCount =
-    course.documents.length + course.notes.length + course.pyq.length;
+  const fileCount = courseFileCount(course);
 
   return (
     <Link
@@ -57,6 +57,12 @@ export function CourseCard({ course, semesterSlug, className }: CourseCardProps)
             <>
               <span className="mx-1.5 text-border">·</span>
               {noteCount} note{noteCount === 1 ? "" : "s"}
+            </>
+          ) : null}
+          {labCount > 0 ? (
+            <>
+              <span className="mx-1.5 text-border">·</span>
+              {labCount} lab{labCount === 1 ? "" : "s"}
             </>
           ) : null}
           {pyqCount > 0 ? (

@@ -10,6 +10,7 @@ import {
 import { SlimStats } from "@/components/dashboard/slim-stats";
 import { PageHeader } from "@/components/page-header";
 import {
+  courseFileCount,
   getContentStats,
   getContentTree,
   matchScheduleSubjectToCourse,
@@ -35,20 +36,11 @@ export default async function DashboardPage() {
       semester.courses.map((course) => ({ semester, course }))
     )
     .sort((a, b) => {
-      const bTotal =
-        b.course.documents.length + b.course.notes.length + b.course.pyq.length;
-      const aTotal =
-        a.course.documents.length + a.course.notes.length + a.course.pyq.length;
-      return bTotal - aTotal;
+      return courseFileCount(b.course) - courseFileCount(a.course);
     });
 
   const quickLinkCourses = coursesWithMaterials
-    .filter(
-      ({ course }) =>
-        course.documents.length > 0 ||
-        course.notes.length > 0 ||
-        course.pyq.length > 0
-    )
+    .filter(({ course }) => courseFileCount(course) > 0)
     .slice(0, QUICK_LINK_COURSE_LIMIT);
 
   // Prefer courses that have materials; if none, show primary semester courses

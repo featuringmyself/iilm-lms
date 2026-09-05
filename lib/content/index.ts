@@ -37,7 +37,17 @@ export async function getContentStats(): Promise<ContentStats> {
     materials: tree.totalMaterials,
     notes: tree.totalNotes,
     pyq: tree.totalPyq,
+    labs: tree.totalLabs,
   };
+}
+
+export function courseFileCount(course: Course): number {
+  return (
+    course.documents.length +
+    course.notes.length +
+    course.pyq.length +
+    course.labs.length
+  );
 }
 
 export async function getDocument(
@@ -50,7 +60,8 @@ export async function getDocument(
   return (
     course.documents.find((d) => d.slug === docSlug) ??
     course.notes.find((d) => d.slug === docSlug) ??
-    course.pyq.find((d) => d.slug === docSlug)
+    course.pyq.find((d) => d.slug === docSlug) ??
+    course.labs.find((d) => d.slug === docSlug)
   );
 }
 
@@ -77,6 +88,9 @@ export async function getAllDocuments(): Promise<
         results.push({ semester, course, document });
       }
       for (const document of course.pyq) {
+        results.push({ semester, course, document });
+      }
+      for (const document of course.labs) {
         results.push({ semester, course, document });
       }
     }

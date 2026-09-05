@@ -13,9 +13,9 @@ const SHORTENED_NOTE =
   "(Question was shortened to fit the chat handoff limit.)";
 
 const URLS_OMITTED_NOTE =
-  "(Some material URLs omitted for length — open those from the course library Materials tab. Notes/PYQ keep direct links above when present.)";
+  "(Some material URLs omitted for length — open those from the course library Materials tab. Notes/Lab/PYQ keep direct links above when present.)";
 
-export type AskAiFileKind = "material" | "note" | "pyq";
+export type AskAiFileKind = "material" | "note" | "pyq" | "lab";
 
 export interface AskAiCourseFile {
   name: string;
@@ -41,17 +41,18 @@ export interface BuildCourseAskAiPromptInput {
 }
 
 /** Display order in the prompt. */
-const KIND_SECTION_ORDER: AskAiFileKind[] = ["material", "note", "pyq"];
+const KIND_SECTION_ORDER: AskAiFileKind[] = ["material", "note", "lab", "pyq"];
 
 /**
- * URL budget order: notes/PYQ first — they are not in the default course-page
+ * URL budget order: notes/lab/PYQ first — they are not in the default course-page
  * HTML (Materials tab only). Materials can still be opened from that page.
  */
-const URL_PRIORITY_ORDER: AskAiFileKind[] = ["pyq", "note", "material"];
+const URL_PRIORITY_ORDER: AskAiFileKind[] = ["pyq", "lab", "note", "material"];
 
 const KIND_SECTION_LABEL: Record<AskAiFileKind, string> = {
   material: "Materials",
   note: "Notes",
+  lab: "Lab experiments & manuals",
   pyq: "Previous-year questions (PYQ)",
 };
 
@@ -173,7 +174,7 @@ function formatFileLine(file: AskAiCourseFile, withUrl: boolean): string {
 }
 
 /**
- * Prefer notes/PYQ URLs when the budget is tight — those files are not linked
+ * Prefer notes/lab/PYQ URLs when the budget is tight — those files are not linked
  * on the default course-page Materials tab; materials still are.
  */
 function pickFilesWithUrls(
@@ -186,6 +187,7 @@ function pickFilesWithUrls(
   const byKind: Record<AskAiFileKind, AskAiCourseFile[]> = {
     material: [],
     note: [],
+    lab: [],
     pyq: [],
   };
   for (const file of orderedFiles) {
@@ -204,7 +206,7 @@ function pickFilesWithUrls(
 
 /**
  * Lists every file name (grouped by kind). Up to `filesWithUrlCount` files
- * also get absolute URLs — notes/PYQ before materials when space is limited.
+ * also get absolute URLs — notes/lab/PYQ before materials when space is limited.
  */
 function formatFilesSection(
   orderedFiles: AskAiCourseFile[],

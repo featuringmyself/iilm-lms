@@ -24,6 +24,23 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-09-05-lab-section",
+    date: "2026-09-05",
+    title: "Lab section",
+    summary:
+      "Lab manuals and experiment sheets live in their own course folder and tab, alongside Materials, Notes, and PYQ.",
+    items: [
+      {
+        kind: "added",
+        text: "Lab tab on course pages when a course has files in Lab/ — Quantum Physics is the first with experiment sheets.",
+      },
+      {
+        kind: "changed",
+        text: "Store lab files under each course's Lab/ directory, separate from materials, notes, and PYQ.",
+      },
+    ],
+  },
+  {
     id: "2026-08-30-ask-ai",
     date: "2026-08-30",
     title: "Ask AI on course files",

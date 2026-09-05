@@ -8,7 +8,7 @@ import {
   type PutBlobResult,
 } from "@vercel/blob";
 
-export type ContentUploadKind = "materials" | "notes" | "pyq";
+export type ContentUploadKind = "materials" | "notes" | "pyq" | "lab";
 
 /** True when a Blob read/write token is configured (Hobby free tier OK). */
 export function isBlobConfigured(): boolean {
@@ -28,6 +28,7 @@ export function isSafeContentSlug(slug: string): boolean {
  * - materials: content/{semesterSlug}/{courseSlug}/{filename}
  * - notes:     content/{semesterSlug}/{courseSlug}/notes/{filename}
  * - pyq:       content/{semesterSlug}/{courseSlug}/pyq/{filename}
+ * - lab:       content/{semesterSlug}/{courseSlug}/lab/{filename}
  */
 export function buildContentBlobPathname(
   semesterSlug: string,
@@ -38,6 +39,7 @@ export function buildContentBlobPathname(
   const base = `content/${semesterSlug}/${courseSlug}`;
   if (kind === "notes") return `${base}/notes/${fileName}`;
   if (kind === "pyq") return `${base}/pyq/${fileName}`;
+  if (kind === "lab") return `${base}/lab/${fileName}`;
   return `${base}/${fileName}`;
 }
 

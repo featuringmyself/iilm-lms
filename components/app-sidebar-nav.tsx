@@ -151,6 +151,7 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                           <SidebarMenuBadge className="font-mono text-[10px] text-muted-foreground">
                             {course.documents.length +
                               course.notes.length +
+                              course.labs.length +
                               course.pyq.length}
                           </SidebarMenuBadge>
                         </SidebarMenuButton>

@@ -49,13 +49,14 @@ vercel env pull
 
 ## Content storage
 
-Course materials, notes, and PYQ are served from **`public/content/`** (committed and deployed). Uploads still go to **Vercel Blob** first so new files are visible immediately; periodically sync Blob down to `public/` and free Blob storage.
+Course materials, notes, PYQ, and lab files are served from **`public/content/`** (committed and deployed). Uploads still go to **Vercel Blob** first so new files are visible immediately; periodically sync Blob down to `public/` and free Blob storage.
 
 Layout:
 
 ```
 public/content/{SemesterFolder}/{CourseFolder}/{filename}          # materials
 public/content/{SemesterFolder}/{CourseFolder}/notes/{filename}    # notes
+public/content/{SemesterFolder}/{CourseFolder}/Lab/{filename}      # lab manuals & experiments
 public/content/{SemesterFolder}/{CourseFolder}/pyq/{filename}      # previous year questions
 ```
 
