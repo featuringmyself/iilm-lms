@@ -24,6 +24,39 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-09-06-vacant-classroom-finder",
+    date: "2026-09-06",
+    title: "Vacant classroom finder",
+    summary:
+      "Find empty classrooms and study spaces across IILM University campus by day and period, with live period detection, building grouping, and floor filters.",
+    items: [
+      {
+        kind: "added",
+        text: "Dedicated /classrooms page with period-by-period vacant classroom lookup across campus buildings.",
+      },
+      {
+        kind: "added",
+        text: "Grouped by Building and All Rooms views with filters for Foundation Block, Engineering Block (EB), SVH, Law, and Labs.",
+      },
+      {
+        kind: "added",
+        text: "Floor-level filtering (Floor 1–4) and one-click room name clipboard copying.",
+      },
+      {
+        kind: "added",
+        text: "Real-time campus slot auto-detection with remaining period countdown in Asia/Kolkata timezone.",
+      },
+      {
+        kind: "added",
+        text: "Dashboard Quick Link, sidebar navigation, and keyboard shortcuts (arrow keys for period navigation, / for search).",
+      },
+      {
+        kind: "changed",
+        text: "Fully indigenous, self-contained campus schedule dataset with zero external network dependencies and instant offline lookups.",
+      },
+    ],
+  },
+  {
     id: "2026-09-05-lab-section",
     date: "2026-09-05",
     title: "Lab section",

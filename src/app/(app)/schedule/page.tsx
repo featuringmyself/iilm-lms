@@ -1,4 +1,5 @@
-import { ExternalLink, MapPin } from "lucide-react";
+import Link from "next/link";
+import { DoorOpen, ExternalLink, MapPin } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { AddToCalendarButton } from "@/components/schedule/add-to-calendar-button";
@@ -19,6 +20,16 @@ export default function SchedulePage() {
         description={`${timetableMeta.university} · ${timetableMeta.school} · Section ${timetableMeta.section}`}
         action={
           <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 w-full justify-center sm:h-8 sm:w-auto"
+              nativeButton={false}
+              render={<Link href="/classrooms" />}
+            >
+              <DoorOpen className="size-3.5 text-primary" strokeWidth={1.75} />
+              <span>Vacant Classrooms</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -53,6 +64,14 @@ export default function SchedulePage() {
           <span className="mx-1.5 text-border">–</span>
           {timetableMeta.validToLabel}
         </p>
+        <span className="hidden sm:inline text-border">·</span>
+        <Link
+          href="/classrooms"
+          className="text-primary hover:underline font-medium inline-flex items-center gap-1 text-[12px] sm:text-[13px]"
+        >
+          <DoorOpen className="size-3.5" strokeWidth={1.75} />
+          <span>Find vacant classrooms</span>
+        </Link>
       </div>
 
       <ScheduleView homework={homework} reminders={reminders} />

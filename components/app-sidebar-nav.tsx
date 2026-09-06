@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, ChevronDown } from "lucide-react";
+import { Calendar, ChevronDown, DoorOpen } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -63,8 +63,62 @@ export function AppSidebarScheduleLink() {
           className="h-8 text-[13px] font-normal transition-colors duration-150"
           render={<Link href="/schedule" onClick={closeMobile} />}
         >
-          <Calendar className="!size-3.5 text-primary" strokeWidth={1.75} />
+          <Calendar className="size-3.5! text-primary" strokeWidth={1.75} />
           <span className="truncate">Schedule</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+export function AppSidebarClassroomsLink() {
+  const pathname = usePathname();
+  const closeMobile = useCloseMobileSidebar();
+  const isClassroomsActive = pathname === "/classrooms";
+
+  return (
+    <SidebarMenu className="gap-0.5">
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={isClassroomsActive}
+          size="sm"
+          className="h-8 text-[13px] font-normal transition-colors duration-150"
+          render={<Link href="/classrooms" onClick={closeMobile} />}
+        >
+          <DoorOpen className="size-3.5! text-primary" strokeWidth={1.75} />
+          <span className="truncate">Vacant Rooms</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+export function AppSidebarFooterNav() {
+  const pathname = usePathname();
+  const closeMobile = useCloseMobileSidebar();
+
+  return (
+    <SidebarMenu className="gap-0.5">
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={pathname === "/schedule"}
+          size="sm"
+          className="h-8 text-[13px] font-normal transition-colors duration-150"
+          render={<Link href="/schedule" onClick={closeMobile} />}
+        >
+          <Calendar className="size-3.5! text-primary" strokeWidth={1.75} />
+          <span className="truncate">Schedule</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={pathname === "/classrooms"}
+          size="sm"
+          className="h-8 text-[13px] font-normal transition-colors duration-150"
+          render={<Link href="/classrooms" onClick={closeMobile} />}
+        >
+          <DoorOpen className="size-3.5! text-primary" strokeWidth={1.75} />
+          <span className="truncate">Vacant Rooms</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>
@@ -144,7 +198,7 @@ export function AppSidebarNav({ tree }: AppSidebarNavProps) {
                           }
                         >
                           <Icon
-                            className={cn("!size-3.5", theme.iconColor)}
+                            className={cn("size-3.5!", theme.iconColor)}
                             strokeWidth={1.75}
                           />
                           <span className="truncate">{course.name}</span>

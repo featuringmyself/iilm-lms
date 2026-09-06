@@ -11,8 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getContentTree } from "@/lib/content";
 import {
   AppSidebarBrandLink,
+  AppSidebarFooterNav,
   AppSidebarNav,
-  AppSidebarScheduleLink,
 } from "./app-sidebar-nav";
 
 export async function AppSidebar() {
@@ -43,7 +43,7 @@ export async function AppSidebar() {
         </ScrollArea>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border px-2 py-2">
-        <AppSidebarScheduleLink />
+        <AppSidebarFooterNav />
         <p className="px-2 pt-1.5 font-mono text-[11px] tabular-nums text-muted-foreground">
           {tree.totalCourses} course{tree.totalCourses === 1 ? "" : "s"}
           <span className="mx-1.5 text-border">·</span>
