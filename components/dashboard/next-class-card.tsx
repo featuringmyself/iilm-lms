@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Calendar,
   Clock,
+  DoorOpen,
   MapPin,
   UserRound,
 } from "lucide-react";
@@ -96,13 +97,23 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
             {next.nowHm}
           </span>
         </div>
-        <Link
-          href="/schedule"
-          className="inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Full timetable
-          <ArrowRight className="size-3" strokeWidth={1.75} />
-        </Link>
+        <div className="flex items-center gap-3 text-[12px]">
+          <Link
+            href="/classrooms"
+            className="inline-flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <DoorOpen className="size-3 text-primary" strokeWidth={1.75} />
+            <span>Vacant rooms</span>
+          </Link>
+          <span className="text-border">·</span>
+          <Link
+            href="/schedule"
+            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Full timetable
+            <ArrowRight className="size-3" strokeWidth={1.75} />
+          </Link>
+        </div>
       </div>
 
       {next.classItem ? (
@@ -127,9 +138,18 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
 
             {next.status === "in_progress" && next.upNext ? (
               <div className="border-t border-border pt-3">
-                <p className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                  Up next
-                </p>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                    Up next
+                  </p>
+                  <Link
+                    href="/classrooms"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                  >
+                    <DoorOpen className="size-3" strokeWidth={1.75} />
+                    <span>Find vacant room</span>
+                  </Link>
+                </div>
                 <p className="text-[13px] text-foreground">
                   <span className="font-medium">{next.upNext.entry.name}</span>
                   <span className="mx-1.5 text-border">·</span>
@@ -149,16 +169,28 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
             ) : null}
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 w-full shrink-0 sm:h-8 sm:w-auto"
-            nativeButton={false}
-            render={<Link href={href} />}
-          >
-            {linkLabel}
-            <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
-          </Button>
+          <div className="flex w-full flex-col gap-2 shrink-0 sm:w-auto sm:flex-row sm:items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full justify-center sm:h-8 sm:w-auto text-xs"
+              nativeButton={false}
+              render={<Link href="/classrooms" />}
+            >
+              <DoorOpen className="size-3.5 text-primary" strokeWidth={1.75} />
+              <span>Vacant rooms</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full shrink-0 sm:h-8 sm:w-auto text-xs"
+              nativeButton={false}
+              render={<Link href={href} />}
+            >
+              {linkLabel}
+              <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -173,16 +205,28 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
               Nothing on the timetable for this week.
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 w-full shrink-0 sm:h-8 sm:w-auto"
-            nativeButton={false}
-            render={<Link href="/schedule" />}
-          >
-            View schedule
-            <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
-          </Button>
+          <div className="flex w-full flex-col gap-2 shrink-0 sm:w-auto sm:flex-row sm:items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full justify-center sm:h-8 sm:w-auto text-xs"
+              nativeButton={false}
+              render={<Link href="/classrooms" />}
+            >
+              <DoorOpen className="size-3.5 text-primary" strokeWidth={1.75} />
+              <span>Vacant rooms</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 w-full shrink-0 sm:h-8 sm:w-auto text-xs"
+              nativeButton={false}
+              render={<Link href="/schedule" />}
+            >
+              View schedule
+              <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
+            </Button>
+          </div>
         </div>
       )}
     </section>

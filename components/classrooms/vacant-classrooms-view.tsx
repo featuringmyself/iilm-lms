@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import {
+  ArrowRight,
   Building2,
   CalendarDays,
   Check,
@@ -18,6 +19,8 @@ import {
   DoorOpen,
   FlaskConical,
   GraduationCap,
+  Hourglass,
+  Info,
   Layers,
   LayoutGrid,
   ListFilter,
@@ -30,6 +33,13 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Tooltip,
@@ -42,6 +52,7 @@ import {
   type BuildingId,
   type VacantRoom,
   type VacantRoomsResult,
+  getAllRoomSchedule,
   getCurrentCampusPeriod,
   getVacantRooms,
 } from "@/lib/classrooms";
@@ -72,36 +83,41 @@ function getBuildingTheme(building: Exclude<BuildingId, "all">) {
       return {
         badge:
           "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-        borderAccent: "group-hover:border-blue-500/30",
+        borderAccent: "hover:border-blue-500/40 focus-visible:ring-blue-500/30",
         dot: "bg-blue-500",
+        ring: "ring-blue-500/20",
       };
     case "eb":
       return {
         badge:
           "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-        borderAccent: "group-hover:border-emerald-500/30",
+        borderAccent: "hover:border-emerald-500/40 focus-visible:ring-emerald-500/30",
         dot: "bg-emerald-500",
+        ring: "ring-emerald-500/20",
       };
     case "svh":
       return {
         badge:
           "border-purple-500/20 bg-purple-500/10 text-purple-700 dark:text-purple-300",
-        borderAccent: "group-hover:border-purple-500/30",
+        borderAccent: "hover:border-purple-500/40 focus-visible:ring-purple-500/30",
         dot: "bg-purple-500",
+        ring: "ring-purple-500/20",
       };
     case "law":
       return {
         badge:
           "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-        borderAccent: "group-hover:border-amber-500/30",
+        borderAccent: "hover:border-amber-500/40 focus-visible:ring-amber-500/30",
         dot: "bg-amber-500",
+        ring: "ring-amber-500/20",
       };
     case "labs":
       return {
         badge:
           "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-        borderAccent: "group-hover:border-rose-500/30",
+        borderAccent: "hover:border-rose-500/40 focus-visible:ring-rose-500/30",
         dot: "bg-rose-500",
+        ring: "ring-rose-500/20",
       };
   }
 }
@@ -144,13 +160,15 @@ function RoomIcon({
 interface RoomCardProps {
   room: VacantRoom;
   periodNumber: number;
+  onOpenSchedule: (room: VacantRoom) => void;
 }
 
-function RoomCard({ room, periodNumber }: RoomCardProps) {
+function RoomCard({ room, periodNumber, onOpenSchedule }: RoomCardProps) {
   const [copied, setCopied] = useState(false);
   const theme = getBuildingTheme(room.building);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(room.name);
       setCopied(true);
@@ -160,11 +178,22 @@ function RoomCard({ room, periodNumber }: RoomCardProps) {
     }
   };
 
+  const consecutive = room.consecutivePeriods ?? 1;
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpenSchedule(room)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenSchedule(room);
+        }
+      }}
       className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-3.5 shadow-2xs transition-all duration-150",
-        "hover:shadow-xs",
+        "group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-3.5 shadow-2xs transition-all duration-150 text-left cursor-pointer select-none",
+        "hover:shadow-xs hover:-translate-y-0.5 focus-visible:outline-hidden focus-visible:ring-2",
         theme.borderAccent
       )}
     >
@@ -231,6 +260,19 @@ function RoomCard({ room, periodNumber }: RoomCardProps) {
             {room.name}
           </p>
         </div>
+
+        {/* Consecutive Availability pill */}
+        {consecutive > 1 && (
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <Hourglass className="size-2.5 shrink-0" />
+              <span>Free for {consecutive} periods</span>
+              {room.freeUntilTime && (
+                <span className="font-mono text-[9px] opacity-80">(till {room.freeUntilTime})</span>
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Footer Info: Room Type & Period indicator */}
@@ -270,6 +312,9 @@ export function VacantClassroomsView({
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingId>("all");
   const [selectedFloor, setSelectedFloor] = useState<FloorFilter>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("grouped");
+
+  // Room Schedule Inspector Modal state
+  const [inspectedRoom, setInspectedRoom] = useState<VacantRoom | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -447,12 +492,18 @@ export function VacantClassroomsView({
     selectedBuilding !== "all" ||
     selectedFloor !== "all";
 
+  // Detailed day schedule for inspected room modal
+  const roomScheduleTimeline = useMemo(() => {
+    if (!inspectedRoom) return [];
+    return getAllRoomSchedule(inspectedRoom.name, selectedDay);
+  }, [inspectedRoom, selectedDay]);
+
   return (
     <div className="space-y-6">
       {/* Live Campus Pulse Banner */}
       <div
         className={cn(
-          "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+          "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between transition-colors",
           isCurrentSlot
             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
             : currentCampus.isLiveNow
@@ -553,7 +604,7 @@ export function VacantClassroomsView({
                   <button
                     key={day.id}
                     type="button"
-                    onClick={() => void handleSelectSlot(day.id, selectedPeriod)}
+                    onClick={() => handleSelectSlot(day.id, selectedPeriod)}
                     className={cn(
                       "group relative flex flex-col items-center justify-center rounded-lg border py-2 px-1 text-center transition-all",
                       isSelected
@@ -630,12 +681,13 @@ export function VacantClassroomsView({
                   currentCampus.isLiveNow &&
                   selectedDay === currentCampus.day &&
                   currentCampus.period === slot.period;
+                const slotVacancies = result?.periodCounts?.[slot.period] ?? 0;
 
                 return (
                   <button
                     key={slot.period}
                     type="button"
-                    onClick={() => void handleSelectSlot(selectedDay, slot.period)}
+                    onClick={() => handleSelectSlot(selectedDay, slot.period)}
                     className={cn(
                       "group relative flex flex-col items-center justify-center rounded-lg border py-2 px-1 text-center transition-all",
                       isSelected
@@ -668,6 +720,18 @@ export function VacantClassroomsView({
                       )}
                     >
                       {slot.start}
+                    </span>
+
+                    {/* Room count badge */}
+                    <span
+                      className={cn(
+                        "mt-1 rounded-sm px-1 font-mono text-[8.5px] tabular-nums font-semibold",
+                        isSelected
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-muted text-muted-foreground group-hover:text-foreground"
+                      )}
+                    >
+                      {slotVacancies} free
                     </span>
 
                     {slot.isLunch && (
@@ -877,6 +941,12 @@ export function VacantClassroomsView({
               </span>
             </>
           )}
+
+          <span className="text-border">·</span>
+          <span className="flex items-center gap-1 text-[11px]">
+            <Info className="size-3" />
+            Click any room to view full day schedule
+          </span>
         </div>
 
         <div className="flex items-center gap-2 font-mono text-[11px]">
@@ -956,6 +1026,7 @@ export function VacantClassroomsView({
                       key={room.name}
                       room={room}
                       periodNumber={selectedPeriod}
+                      onOpenSchedule={setInspectedRoom}
                     />
                   ))}
                 </div>
@@ -971,27 +1042,123 @@ export function VacantClassroomsView({
               key={room.name}
               room={room}
               periodNumber={selectedPeriod}
+              onOpenSchedule={setInspectedRoom}
             />
           ))}
         </div>
       )}
 
-      {/* Helpful Campus Guide / Footer */}
-      <div className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground shadow-2xs">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex items-center gap-1.5">
-            <Sparkles className="size-3.5 text-primary shrink-0" />
-            <span>
-              Rooms listed above are free from scheduled lectures during the selected slot.
-            </span>
-          </p>
-          <div className="flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
-            <span>
-              Keyboard: <kbd className="rounded border px-1">←</kbd> <kbd className="rounded border px-1">→</kbd> to change period · <kbd className="rounded border px-1">/</kbd> to search
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Room Full Day Timeline Inspector Dialog */}
+      <Dialog open={Boolean(inspectedRoom)} onOpenChange={(open) => !open && setInspectedRoom(null)}>
+        <DialogContent className="sm:max-w-md">
+          {inspectedRoom && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium",
+                      getBuildingTheme(inspectedRoom.building).badge
+                    )}
+                  >
+                    <RoomIcon
+                      building={inspectedRoom.building}
+                      isLab={inspectedRoom.isLab}
+                      className="size-3 shrink-0"
+                    />
+                    <span>{inspectedRoom.buildingLabel}</span>
+                  </span>
+                  {inspectedRoom.floorLabel && (
+                    <span className="text-xs text-muted-foreground font-mono">
+                      · {inspectedRoom.floorLabel}
+                    </span>
+                  )}
+                </div>
+                <DialogTitle className="font-mono text-xl font-bold tracking-tight text-foreground mt-1">
+                  {inspectedRoom.name}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Availability schedule for{" "}
+                  <strong className="text-foreground capitalize">{selectedDay}</strong> across all 9 campus periods.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Day Timeline Grid */}
+              <div className="space-y-2 py-2">
+                <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pr-1">
+                  {roomScheduleTimeline.map((slot) => {
+                    const isSelectedP = slot.period === selectedPeriod;
+                    return (
+                      <div
+                        key={slot.period}
+                        className={cn(
+                          "flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors",
+                          isSelectedP && "ring-2 ring-primary/60 border-primary/40",
+                          slot.isFree
+                            ? "bg-emerald-500/5 border-emerald-500/20 text-foreground"
+                            : "bg-muted/40 border-border/50 text-muted-foreground opacity-60"
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={cn(
+                              "font-mono text-xs font-semibold px-1.5 py-0.5 rounded",
+                              isSelectedP ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                            )}
+                          >
+                            P{slot.period}
+                          </span>
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {slot.slotLabel}
+                          </span>
+                          {slot.isLunch && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-600 dark:text-amber-400 font-medium uppercase">
+                              <Utensils className="size-2.5" />
+                              Lunch
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          {slot.isFree ? (
+                            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                              <span className="size-1.5 rounded-full bg-emerald-500" />
+                              Vacant
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[11px] text-muted-foreground">
+                              Occupied
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Actions Footer */}
+              <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs">
+                <span className="font-mono text-muted-foreground text-[11px]">
+                  {roomScheduleTimeline.filter((s) => s.isFree).length} of 9 periods free
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inspectedRoom.name);
+                    setInspectedRoom(null);
+                  }}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  <Copy className="size-3.5" />
+                  Copy Name
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -168,7 +168,33 @@ export function getVacantRooms(
   const dayData = VACANT_CLASSROOMS_DATA[normalizedDay];
   const rawRoomNames: string[] = dayData?.[period] ?? [];
 
-  const rooms: VacantRoom[] = rawRoomNames.map(categorizeRoom);
+  const rooms: VacantRoom[] = rawRoomNames.map((raw) => {
+    const base = categorizeRoom(raw);
+
+    // Calculate how many consecutive periods this room stays free starting from current period
+    let consecutivePeriods = 1;
+    let freeUntilPeriod = period;
+
+    for (let p = period + 1; p <= 9; p++) {
+      const nextList = dayData?.[p] ?? [];
+      if (nextList.includes(base.name)) {
+        consecutivePeriods++;
+        freeUntilPeriod = p;
+      } else {
+        break;
+      }
+    }
+
+    const untilSlot = timeSlots.find((s) => s.period === freeUntilPeriod);
+    const freeUntilTime = untilSlot ? untilSlot.end : undefined;
+
+    return {
+      ...base,
+      consecutivePeriods,
+      freeUntilPeriod,
+      freeUntilTime,
+    };
+  });
 
   // Compute building counts
   const buildingCounts: Record<BuildingId, number> = {
@@ -187,6 +213,22 @@ export function getVacantRooms(
     }
   }
 
+  // Precompute room count for each period on this day
+  const periodCounts: Record<number, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+    7: 0,
+    8: 0,
+    9: 0,
+  };
+  for (let p = 1; p <= 9; p++) {
+    periodCounts[p] = (dayData?.[p] ?? []).length;
+  }
+
   return {
     day: normalizedDay,
     period,
@@ -194,6 +236,7 @@ export function getVacantRooms(
     total: rooms.length,
     rooms,
     buildingCounts,
+    periodCounts,
     fetchedAt: new Date().toISOString(),
   };
 }
@@ -205,6 +248,46 @@ export async function fetchVacantRooms(
 ): Promise<VacantRoomsResult> {
   void _options;
   return getVacantRooms(day, period);
+}
+
+export function getAllRoomSchedule(roomName: string, day: Weekday) {
+  const normalizedDay = day.toLowerCase() as Weekday;
+  const dayData = VACANT_CLASSROOMS_DATA[normalizedDay];
+
+  return timeSlots.map((slot) => {
+    const list = dayData?.[slot.period] ?? [];
+    const isFree = list.includes(roomName);
+    return {
+      period: slot.period,
+      slotLabel: `${slot.start} – ${slot.end}`,
+      start: slot.start,
+      end: slot.end,
+      isLunch: Boolean(slot.isLunch),
+      isFree,
+    };
+  });
+}
+
+export function getFullRoomWeekSchedule(roomName: string) {
+  const schedule: Record<Weekday, { period: number; isFree: boolean; isLunch: boolean }[]> = {
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+  };
+
+  for (const day of weekdays) {
+    const dayData = VACANT_CLASSROOMS_DATA[day.id];
+    schedule[day.id] = timeSlots.map((slot) => ({
+      period: slot.period,
+      isFree: (dayData?.[slot.period] ?? []).includes(roomName),
+      isLunch: Boolean(slot.isLunch),
+    }));
+  }
+
+  return schedule;
 }
 
 export function getAllWeekdays() {

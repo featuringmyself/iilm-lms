@@ -17,6 +17,9 @@ export interface VacantRoom {
   floorLabel?: string;
   roomType: string;
   isLab: boolean;
+  consecutivePeriods?: number;
+  freeUntilPeriod?: number;
+  freeUntilTime?: string;
 }
 
 export interface BuildingFilterOption {
@@ -41,6 +44,7 @@ export interface VacantRoomsResult {
   total: number;
   rooms: VacantRoom[];
   buildingCounts: Record<BuildingId, number>;
+  periodCounts: Record<number, number>;
   fetchedAt: string;
 }
 

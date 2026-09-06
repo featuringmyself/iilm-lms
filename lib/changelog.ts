@@ -51,6 +51,14 @@ export const changelog: ChangelogEntry[] = [
         text: "Dashboard Quick Link, sidebar navigation, and keyboard shortcuts (arrow keys for period navigation, / for search).",
       },
       {
+        kind: "added",
+        text: "Interactive Room Schedule Inspector dialog showing a complete 9-period vacancy timeline on click, plus multi-period consecutive vacancy badges.",
+      },
+      {
+        kind: "added",
+        text: "Period switcher vacancy badges showing exact number of free classrooms available for each time slot upfront.",
+      },
+      {
         kind: "changed",
         text: "Fully indigenous, self-contained campus schedule dataset with zero external network dependencies and instant offline lookups.",
       },
