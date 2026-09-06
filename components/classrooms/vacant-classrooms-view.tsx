@@ -8,9 +8,8 @@ import {
   useState,
 } from "react";
 import {
-  ArrowRight,
   Building2,
-  CalendarDays,
+  Calendar,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -20,12 +19,7 @@ import {
   FlaskConical,
   GraduationCap,
   Hourglass,
-  Info,
   Layers,
-  LayoutGrid,
-  ListFilter,
-  MapPin,
-  RefreshCw,
   Search,
   Sparkles,
   Utensils,
@@ -41,12 +35,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   BUILDING_OPTIONS,
   type BuildingId,
@@ -65,72 +53,27 @@ interface VacantClassroomsViewProps {
   initialPeriod?: number;
 }
 
-type ViewMode = "grouped" | "grid";
+type ModeTab = "now" | "plan";
 type FloorFilter = "all" | 1 | 2 | 3 | 4 | "special";
 
 const FLOOR_OPTIONS: { id: FloorFilter; label: string }[] = [
-  { id: "all", label: "All Floors" },
+  { id: "all", label: "All floors" },
   { id: 1, label: "Floor 1" },
   { id: 2, label: "Floor 2" },
   { id: 3, label: "Floor 3" },
   { id: 4, label: "Floor 4" },
-  { id: "special", label: "Labs & Special" },
+  { id: "special", label: "Labs" },
 ];
 
-function getBuildingTheme(building: Exclude<BuildingId, "all">) {
-  switch (building) {
-    case "foundation":
-      return {
-        badge:
-          "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300",
-        borderAccent: "hover:border-blue-500/40 focus-visible:ring-blue-500/30",
-        dot: "bg-blue-500",
-        ring: "ring-blue-500/20",
-      };
-    case "eb":
-      return {
-        badge:
-          "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-        borderAccent: "hover:border-emerald-500/40 focus-visible:ring-emerald-500/30",
-        dot: "bg-emerald-500",
-        ring: "ring-emerald-500/20",
-      };
-    case "svh":
-      return {
-        badge:
-          "border-purple-500/20 bg-purple-500/10 text-purple-700 dark:text-purple-300",
-        borderAccent: "hover:border-purple-500/40 focus-visible:ring-purple-500/30",
-        dot: "bg-purple-500",
-        ring: "ring-purple-500/20",
-      };
-    case "law":
-      return {
-        badge:
-          "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-        borderAccent: "hover:border-amber-500/40 focus-visible:ring-amber-500/30",
-        dot: "bg-amber-500",
-        ring: "ring-amber-500/20",
-      };
-    case "labs":
-      return {
-        badge:
-          "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300",
-        borderAccent: "hover:border-rose-500/40 focus-visible:ring-rose-500/30",
-        dot: "bg-rose-500",
-        ring: "ring-rose-500/20",
-      };
-  }
-}
-
 const BUILDING_ICONS: Record<Exclude<BuildingId, "all">, typeof Building2> = {
-  foundation: Building2,
   eb: Layers,
+  foundation: Building2,
   svh: GraduationCap,
   law: Building2,
   labs: FlaskConical,
 };
 
-function BuildingBlockIcon({
+function BuildingIcon({
   id,
   className,
 }: {
@@ -141,44 +84,34 @@ function BuildingBlockIcon({
   return <Icon className={className} strokeWidth={1.75} />;
 }
 
-function RoomIcon({
-  building,
-  isLab,
-  className,
-}: {
-  building: Exclude<BuildingId, "all">;
-  isLab: boolean;
-  className?: string;
-}) {
-  if (isLab) {
-    return <FlaskConical className={className} strokeWidth={1.75} />;
-  }
-  const Icon = BUILDING_ICONS[building] ?? Building2;
-  return <Icon className={className} strokeWidth={1.75} />;
-}
-
 interface RoomCardProps {
   room: VacantRoom;
   periodNumber: number;
+  periodEnd?: string;
   onOpenSchedule: (room: VacantRoom) => void;
 }
 
-function RoomCard({ room, periodNumber, onOpenSchedule }: RoomCardProps) {
+function RoomCard({
+  room,
+  periodNumber: _periodNumber,
+  periodEnd,
+  onOpenSchedule,
+}: RoomCardProps) {
+  void _periodNumber;
   const [copied, setCopied] = useState(false);
-  const theme = getBuildingTheme(room.building);
+  const consecutive = room.consecutivePeriods ?? 1;
+  const isLongSession = consecutive >= 2;
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(room.name);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1800);
     } catch {
       // ignore
     }
   };
-
-  const consecutive = room.consecutivePeriods ?? 1;
 
   return (
     <div
@@ -192,97 +125,71 @@ function RoomCard({ room, periodNumber, onOpenSchedule }: RoomCardProps) {
         }
       }}
       className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-card p-3.5 shadow-2xs transition-all duration-150 text-left cursor-pointer select-none",
-        "hover:shadow-xs hover:-translate-y-0.5 focus-visible:outline-hidden focus-visible:ring-2",
-        theme.borderAccent
+        "group relative flex flex-col justify-between rounded-xl border bg-card p-4 text-left transition-all duration-150 cursor-pointer select-none",
+        isLongSession
+          ? "border-emerald-500/30 hover:border-emerald-500/50 hover:shadow-sm"
+          : "border-border hover:border-foreground/25 hover:shadow-xs",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       )}
     >
       <div>
-        {/* Top Header: Building Badge, Floor, and Copy Button */}
-        <div className="mb-2 flex items-center justify-between gap-1.5">
-          <span
+        {/* Top Header: Room code + Copy action */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="font-mono text-base font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">
+              {room.shortCode}
+            </h3>
+            <p className="truncate text-xs font-medium text-muted-foreground mt-0.5">
+              {room.buildingLabel}
+              {room.floorLabel ? ` · ${room.floorLabel}` : ""}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCopy}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-none",
-              theme.badge
+              "flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent transition-colors",
+              "text-muted-foreground opacity-50 group-hover:opacity-100 hover:border-border hover:bg-muted hover:text-foreground",
+              copied && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 opacity-100 dark:text-emerald-400"
             )}
+            title={copied ? "Copied to clipboard" : `Copy ${room.name}`}
+            aria-label={`Copy ${room.name}`}
           >
-            <RoomIcon
-              building={room.building}
-              isLab={room.isLab}
-              className="size-2.5 shrink-0"
-            />
-            <span className="truncate">{room.buildingLabel}</span>
-          </span>
-
-          <div className="flex items-center gap-1 shrink-0">
-            {room.floorLabel ? (
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {room.floorLabel}
-              </span>
-            ) : null}
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      onClick={handleCopy}
-                      className={cn(
-                        "flex size-6 items-center justify-center rounded-md border border-transparent transition-colors",
-                        "text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground",
-                        copied && "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      )}
-                      aria-label={copied ? "Room copied to clipboard" : `Copy ${room.name}`}
-                    />
-                  }
-                >
-                  {copied ? (
-                    <Check className="size-3" strokeWidth={2.5} />
-                  ) : (
-                    <Copy className="size-3" strokeWidth={1.75} />
-                  )}
-                </TooltipTrigger>
-                <TooltipContent side="top">
-                  {copied ? "Copied!" : "Copy room name"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+            {copied ? (
+              <Check className="size-3.5" strokeWidth={2.5} />
+            ) : (
+              <Copy className="size-3.5" strokeWidth={1.75} />
+            )}
+          </button>
         </div>
 
-        {/* Room Title */}
-        <div className="mt-1">
-          <h3 className="font-mono text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
-            {room.shortCode}
-          </h3>
-          <p className="line-clamp-1 text-[11px] text-muted-foreground">
-            {room.name}
-          </p>
-        </div>
-
-        {/* Consecutive Availability pill */}
-        {consecutive > 1 && (
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-              <Hourglass className="size-2.5 shrink-0" />
-              <span>Free for {consecutive} periods</span>
-              {room.freeUntilTime && (
-                <span className="font-mono text-[9px] opacity-80">(till {room.freeUntilTime})</span>
-              )}
-            </span>
-          </div>
-        )}
+        {/* Room Type Subtitle */}
+        <p className="mt-2 text-[11px] text-muted-foreground/80 line-clamp-1">
+          {room.roomType}
+        </p>
       </div>
 
-      {/* Footer Info: Room Type & Period indicator */}
-      <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
-        <span className="truncate font-medium text-[10px] text-muted-foreground">
-          {room.roomType}
-        </span>
-        <span className="inline-flex items-center gap-1 font-mono text-[10px] tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
-          P{periodNumber} Free
+      {/* Availability Status Tag (The Hero Decision Indicator) */}
+      <div className="mt-4 pt-2.5 border-t border-border/50 flex items-center justify-between text-xs">
+        {isLongSession ? (
+          <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-300">
+            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>Free till {room.freeUntilTime}</span>
+            <span className="text-[10px] font-mono opacity-80 font-normal">
+              ({consecutive} periods)
+            </span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 font-mono text-muted-foreground text-[11px]">
+            <Clock className="size-3 text-muted-foreground/70 shrink-0" />
+            <span>Free this period</span>
+            {periodEnd && <span className="opacity-75">· till {periodEnd}</span>}
+          </span>
+        )}
+
+        <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 font-medium">
+          View schedule →
         </span>
       </div>
     </div>
@@ -296,6 +203,11 @@ export function VacantClassroomsView({
 }: VacantClassroomsViewProps) {
   const currentCampus = useMemo(() => getCurrentCampusPeriod(), []);
 
+  // Primary mode: "now" (instant answer) vs "plan" (schedule matrix)
+  const [activeTab, setActiveTab] = useState<ModeTab>(() =>
+    currentCampus.isLiveNow ? "now" : "plan"
+  );
+
   const [selectedDay, setSelectedDay] = useState<Weekday>(
     initialDay ?? initialResult?.day ?? currentCampus.day
   );
@@ -307,21 +219,16 @@ export function VacantClassroomsView({
     initialResult ?? getVacantRooms(selectedDay, selectedPeriod)
   );
 
-  // Client-side quick filter & search
-  const [searchQuery, setSearchQuery] = useState("");
+  // Filters
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingId>("all");
   const [selectedFloor, setSelectedFloor] = useState<FloorFilter>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("grouped");
+  const [longSessionOnly, setLongSessionOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Room Schedule Inspector Modal state
+  // Room Inspector Modal
   const [inspectedRoom, setInspectedRoom] = useState<VacantRoom | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const isCurrentSlot =
-    currentCampus.isLiveNow &&
-    selectedDay === currentCampus.day &&
-    selectedPeriod === currentCampus.period;
 
   const handleSelectSlot = useCallback(
     (day: Weekday, period: number) => {
@@ -332,7 +239,18 @@ export function VacantClassroomsView({
     []
   );
 
-  // Keyboard navigation: Left/Right arrow for periods, '/' for search
+  // When switching to "now", immediately sync with live campus slot
+  const handleSwitchToNow = () => {
+    setActiveTab("now");
+    const campus = getCurrentCampusPeriod();
+    handleSelectSlot(campus.day, campus.period);
+  };
+
+  const handleSwitchToPlan = () => {
+    setActiveTab("plan");
+  };
+
+  // Keyboard navigation: / to search, Arrow keys to step periods in plan mode
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
@@ -350,32 +268,25 @@ export function VacantClassroomsView({
         return;
       }
 
-      if (e.key === "ArrowLeft") {
-        if (selectedPeriod > 1) {
-          handleSelectSlot(selectedDay, selectedPeriod - 1);
+      if (activeTab === "plan") {
+        if (e.key === "ArrowLeft") {
+          if (selectedPeriod > 1) {
+            handleSelectSlot(selectedDay, selectedPeriod - 1);
+          }
+        } else if (e.key === "ArrowRight") {
+          if (selectedPeriod < 9) {
+            handleSelectSlot(selectedDay, selectedPeriod + 1);
+          }
+        } else if (/^[1-9]$/.test(e.key)) {
+          const p = parseInt(e.key, 10);
+          handleSelectSlot(selectedDay, p);
         }
-      } else if (e.key === "ArrowRight") {
-        if (selectedPeriod < 9) {
-          handleSelectSlot(selectedDay, selectedPeriod + 1);
-        }
-      } else if (/^[1-9]$/.test(e.key)) {
-        const p = parseInt(e.key, 10);
-        handleSelectSlot(selectedDay, p);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedDay, selectedPeriod, handleSelectSlot]);
-
-  const handleJumpToNow = () => {
-    const campus = getCurrentCampusPeriod();
-    handleSelectSlot(campus.day, campus.period);
-  };
-
-  const handleRefresh = () => {
-    handleSelectSlot(selectedDay, selectedPeriod);
-  };
+  }, [activeTab, selectedDay, selectedPeriod, handleSelectSlot]);
 
   const handleStepPeriod = (direction: -1 | 1) => {
     const nextP = selectedPeriod + direction;
@@ -385,9 +296,10 @@ export function VacantClassroomsView({
   };
 
   const resetAllFilters = () => {
-    setSearchQuery("");
     setSelectedBuilding("all");
     setSelectedFloor("all");
+    setLongSessionOnly(false);
+    setSearchQuery("");
   };
 
   // Filtered rooms
@@ -412,6 +324,10 @@ export function VacantClassroomsView({
       }
     }
 
+    if (longSessionOnly) {
+      list = list.filter((r) => (r.consecutivePeriods ?? 1) >= 2);
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(
@@ -425,7 +341,7 @@ export function VacantClassroomsView({
     }
 
     return list;
-  }, [result?.rooms, selectedBuilding, selectedFloor, searchQuery]);
+  }, [result?.rooms, selectedBuilding, selectedFloor, longSessionOnly, searchQuery]);
 
   // Grouped rooms by building
   const groupedRooms = useMemo(() => {
@@ -435,13 +351,13 @@ export function VacantClassroomsView({
       rooms: VacantRoom[];
     }[] = [
       {
-        id: "foundation",
-        title: "Foundation Block",
+        id: "eb",
+        title: "Engineering Block (EB)",
         rooms: [],
       },
       {
-        id: "eb",
-        title: "Engineering Block (EB)",
+        id: "foundation",
+        title: "Foundation Block",
         rooms: [],
       },
       {
@@ -473,24 +389,18 @@ export function VacantClassroomsView({
     return groups.filter((g) => g.rooms.length > 0);
   }, [filteredRooms]);
 
-  // Derived stats
-  const topBuilding = useMemo(() => {
-    if (!result?.buildingCounts) return null;
-    const candidates: { id: BuildingId; count: number; label: string }[] = [
-      { id: "foundation", count: result.buildingCounts.foundation, label: "Foundation Block" },
-      { id: "eb", count: result.buildingCounts.eb, label: "Engineering Block" },
-      { id: "svh", count: result.buildingCounts.svh, label: "SVH Block" },
-      { id: "law", count: result.buildingCounts.law, label: "Law Block" },
-    ];
-    candidates.sort((a, b) => b.count - a.count);
-    return candidates[0] && candidates[0].count > 0 ? candidates[0] : null;
-  }, [result]);
-
   const activePeriodSlot = timeSlots.find((s) => s.period === selectedPeriod);
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
     selectedBuilding !== "all" ||
-    selectedFloor !== "all";
+    selectedFloor !== "all" ||
+    longSessionOnly;
+
+  // Stats for the current period
+  const totalFreeNow = result?.total ?? 0;
+  const longSessionCount = useMemo(() => {
+    return result?.rooms.filter((r) => (r.consecutivePeriods ?? 1) >= 2).length ?? 0;
+  }, [result?.rooms]);
 
   // Detailed day schedule for inspected room modal
   const roomScheduleTimeline = useMemo(() => {
@@ -500,480 +410,397 @@ export function VacantClassroomsView({
 
   return (
     <div className="space-y-6">
-      {/* Live Campus Pulse Banner */}
-      <div
-        className={cn(
-          "flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between transition-colors",
-          isCurrentSlot
-            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100"
-            : currentCampus.isLiveNow
-            ? "border-primary/20 bg-primary/5 text-foreground"
-            : "border-border bg-card text-muted-foreground"
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-lg border",
-              isCurrentSlot
-                ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-300"
-                : "border-border bg-background text-foreground/70"
-            )}
-          >
-            {isCurrentSlot ? (
-              <Sparkles className="size-4 animate-pulse text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <Clock className="size-4" strokeWidth={1.75} />
-            )}
-          </div>
-
-          <div className="min-w-0">
+      {/* 1. Context Hero: Addresses the Student's Immediate Goal */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-[13px] text-foreground">
-                {currentCampus.isLiveNow
-                  ? `Campus Live Slot: Period ${currentCampus.period} (${currentCampus.slotLabel})`
-                  : currentCampus.isBeforeClasses
-                  ? "Before Classes (09:00 Start)"
-                  : currentCampus.isAfterClasses
-                  ? "Classes Concluded (After 17:15)"
-                  : "Weekend · Self Study Mode"}
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <DoorOpen className="size-3.5 text-primary" strokeWidth={1.75} />
+                Campus Room Vacancy
               </span>
 
-              {isCurrentSlot && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white uppercase tracking-wider">
-                  <span className="size-1.5 rounded-full bg-white animate-ping" />
-                  Live Now
+              {currentCampus.isLiveNow && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live campus time {currentCampus.nowHm} IST
                 </span>
               )}
             </div>
 
-            <p className="text-[12px] text-muted-foreground">
-              {currentCampus.isLiveNow ? (
-                <>
-                  Campus time:{" "}
-                  <span className="font-mono tabular-nums font-medium text-foreground">
-                    {currentCampus.nowHm} IST
-                  </span>
-                  {currentCampus.minutesLeft ? (
-                    <>
-                      <span className="mx-1.5 text-border">·</span>
-                      <span>{currentCampus.minutesLeft} min remaining in current period</span>
-                    </>
-                  ) : null}
-                </>
+            <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              {activeTab === "now" && currentCampus.isLiveNow ? (
+                <span>{totalFreeNow} rooms vacant right now</span>
+              ) : activeTab === "now" && !currentCampus.isLiveNow ? (
+                <span>
+                  {currentCampus.isWeekend
+                    ? "Campus weekend study hours"
+                    : currentCampus.isBeforeClasses
+                    ? "Morning schedule · Classes start at 09:00"
+                    : "Classes concluded for today"}
+                </span>
               ) : (
-                "Select any weekday and period to check room vacancy across campus blocks."
+                <span>
+                  Period {selectedPeriod} ({activePeriodSlot?.start}–{activePeriodSlot?.end}) ·{" "}
+                  {weekdays.find((d) => d.id === selectedDay)?.label}
+                </span>
+              )}
+            </h2>
+
+            <p className="text-xs text-muted-foreground sm:text-[13px]">
+              {activeTab === "now" && currentCampus.isLiveNow ? (
+                <span>
+                  Showing active Period {currentCampus.period} ({currentCampus.slotLabel})
+                  {currentCampus.minutesLeft ? ` · ${currentCampus.minutesLeft}m remaining` : ""}
+                  {longSessionCount > 0
+                    ? ` · ${longSessionCount} spots free for 2+ consecutive periods`
+                    : ""}
+                </span>
+              ) : activeTab === "now" && !currentCampus.isLiveNow ? (
+                <span>
+                  Browse upcoming classroom vacancies or switch to Plan Ahead to inspect any time slot.
+                </span>
+              ) : (
+                <span>
+                  Showing all vacant classrooms for {weekdays.find((d) => d.id === selectedDay)?.label},{" "}
+                  Period {selectedPeriod}. Click any slot below to change time.
+                </span>
               )}
             </p>
           </div>
+
+          {/* Mode Switcher: 2 Clear Journeys (Right Now vs Plan Ahead) */}
+          <div className="flex shrink-0 items-center rounded-lg border border-border bg-muted/40 p-1 self-start sm:self-center">
+            <button
+              type="button"
+              onClick={handleSwitchToNow}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer",
+                activeTab === "now"
+                  ? "bg-card text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Sparkles className="size-3.5 text-primary" />
+              <span>Right Now</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSwitchToPlan}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer",
+                activeTab === "plan"
+                  ? "bg-card text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Calendar className="size-3.5 text-muted-foreground" />
+              <span>Plan Ahead</span>
+            </button>
+          </div>
         </div>
 
-        {currentCampus.isLiveNow && !isCurrentSlot && (
-          <Button
-            size="sm"
-            onClick={handleJumpToNow}
-            className="h-8 gap-1.5 text-xs font-semibold shadow-xs"
-          >
-            <Clock className="size-3.5" />
-            <span>Jump to right now (P{currentCampus.period})</span>
-          </Button>
-        )}
-      </div>
-
-      {/* Control Panel: Day & Period Selector */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-xs sm:p-5">
-        <div className="space-y-4">
-          {/* Day selection row */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
-                <CalendarDays className="size-3.5" strokeWidth={1.75} />
-                Day of week
+        {/* Plan Ahead Controls: Progressive Disclosure (Only shown when user wants to plan ahead) */}
+        {activeTab === "plan" && (
+          <div className="mt-5 pt-4 border-t border-border/60 space-y-3.5">
+            {/* Day Selector */}
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Select Day
               </span>
-              <span className="text-[11px] font-mono text-muted-foreground">
-                {weekdays.find((d) => d.id === selectedDay)?.label}
-              </span>
-            </div>
 
-            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-              {weekdays.map((day) => {
-                const isSelected = selectedDay === day.id;
-                const isToday = currentCampus.day === day.id;
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none">
+                {weekdays.map((day) => {
+                  const isSelected = selectedDay === day.id;
+                  const isToday = currentCampus.day === day.id;
 
-                return (
-                  <button
-                    key={day.id}
-                    type="button"
-                    onClick={() => handleSelectSlot(day.id, selectedPeriod)}
-                    className={cn(
-                      "group relative flex flex-col items-center justify-center rounded-lg border py-2 px-1 text-center transition-all",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-xs font-semibold"
-                        : "border-border bg-background hover:bg-muted text-foreground font-medium",
-                      isToday && !isSelected && "ring-1 ring-primary/40"
-                    )}
-                  >
-                    <span className="text-xs sm:text-[13px]">{day.label}</span>
-                    {isToday && (
-                      <span
-                        className={cn(
-                          "mt-0.5 text-[9px] uppercase tracking-wider font-semibold",
-                          isSelected
-                            ? "text-primary-foreground/90 font-normal"
-                            : "text-primary"
-                        )}
-                      >
-                        Today
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Period selector with stepping chevrons */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
-                  <Clock className="size-3.5" strokeWidth={1.75} />
-                  Period
-                </span>
-                <span className="text-[11px] font-mono text-muted-foreground">
-                  (P{selectedPeriod} · {activePeriodSlot?.start} – {activePeriodSlot?.end})
-                </span>
-              </div>
-
-              {/* Prev / Next Steppers */}
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  onClick={() => handleStepPeriod(-1)}
-                  disabled={selectedPeriod <= 1}
-                  aria-label="Previous period"
-                  className="size-7"
-                >
-                  <ChevronLeft className="size-3.5" />
-                </Button>
-                <span className="font-mono text-xs text-muted-foreground px-1 tabular-nums">
-                  {selectedPeriod} / 9
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon-xs"
-                  onClick={() => handleStepPeriod(1)}
-                  disabled={selectedPeriod >= 9}
-                  aria-label="Next period"
-                  className="size-7"
-                >
-                  <ChevronRight className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Period buttons grid */}
-            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-9">
-              {timeSlots.map((slot) => {
-                const isSelected = selectedPeriod === slot.period;
-                const isSlotNow =
-                  currentCampus.isLiveNow &&
-                  selectedDay === currentCampus.day &&
-                  currentCampus.period === slot.period;
-                const slotVacancies = result?.periodCounts?.[slot.period] ?? 0;
-
-                return (
-                  <button
-                    key={slot.period}
-                    type="button"
-                    onClick={() => handleSelectSlot(selectedDay, slot.period)}
-                    className={cn(
-                      "group relative flex flex-col items-center justify-center rounded-lg border py-2 px-1 text-center transition-all",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-foreground shadow-xs font-semibold"
-                        : "border-border bg-background hover:bg-muted text-foreground font-medium",
-                      isSlotNow && !isSelected && "ring-1 ring-emerald-500/60"
-                    )}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className="font-mono text-xs sm:text-[13px]">
-                        P{slot.period}
-                      </span>
-                      {isSlotNow && (
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => handleSelectSlot(day.id, selectedPeriod)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer shrink-0",
+                        isSelected
+                          ? "bg-foreground text-background font-semibold"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        isToday && !isSelected && "text-foreground font-semibold"
+                      )}
+                    >
+                      <span>{day.label}</span>
+                      {isToday && (
                         <span
                           className={cn(
                             "size-1.5 rounded-full",
-                            isSelected ? "bg-emerald-300" : "bg-emerald-500 animate-pulse"
+                            isSelected ? "bg-background" : "bg-primary"
                           )}
-                          title="Currently active period"
+                          title="Today"
                         />
                       )}
-                    </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-                    <span
+            {/* Period Selector Grid with Times */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Campus Periods
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon-xs"
+                    onClick={() => handleStepPeriod(-1)}
+                    disabled={selectedPeriod <= 1}
+                    className="size-6"
+                    aria-label="Previous period"
+                  >
+                    <ChevronLeft className="size-3" />
+                  </Button>
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground px-1">
+                    P{selectedPeriod} of 9
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon-xs"
+                    onClick={() => handleStepPeriod(1)}
+                    disabled={selectedPeriod >= 9}
+                    className="size-6"
+                    aria-label="Next period"
+                  >
+                    <ChevronRight className="size-3" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-9">
+                {timeSlots.map((slot) => {
+                  const isSelected = selectedPeriod === slot.period;
+                  const count = result?.periodCounts?.[slot.period] ?? 0;
+                  const isLiveSlot =
+                    currentCampus.isLiveNow &&
+                    currentCampus.day === selectedDay &&
+                    currentCampus.period === slot.period;
+
+                  return (
+                    <button
+                      key={slot.period}
+                      type="button"
+                      onClick={() => handleSelectSlot(selectedDay, slot.period)}
                       className={cn(
-                        "font-mono text-[9px] tabular-nums sm:text-[10px]",
+                        "flex flex-col items-center justify-center rounded-lg border p-2 text-center transition-all cursor-pointer",
                         isSelected
-                          ? "text-primary-foreground/80"
-                          : "text-muted-foreground"
+                          ? "border-primary bg-primary text-primary-foreground font-semibold shadow-xs"
+                          : "border-border bg-background hover:bg-muted text-foreground",
+                        isLiveSlot && !isSelected && "border-emerald-500/60 ring-1 ring-emerald-500/30"
                       )}
                     >
-                      {slot.start}
-                    </span>
-
-                    {/* Room count badge */}
-                    <span
-                      className={cn(
-                        "mt-1 rounded-sm px-1 font-mono text-[8.5px] tabular-nums font-semibold",
-                        isSelected
-                          ? "bg-primary-foreground/20 text-primary-foreground"
-                          : "bg-muted text-muted-foreground group-hover:text-foreground"
-                      )}
-                    >
-                      {slotVacancies} free
-                    </span>
-
-                    {slot.isLunch && (
+                      <span className="font-mono text-xs font-semibold">
+                        P{slot.period}
+                      </span>
                       <span
                         className={cn(
-                          "mt-0.5 inline-flex items-center gap-0.5 text-[8px] font-semibold uppercase tracking-wider",
-                          isSelected
-                            ? "text-primary-foreground/90 font-normal"
-                            : "text-amber-600 dark:text-amber-400"
+                          "font-mono text-[10px] tabular-nums mt-0.5",
+                          isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
                         )}
                       >
-                        <Utensils className="size-2" />
-                        Lunch
+                        {slot.start}
                       </span>
-                    )}
-                  </button>
-                );
-              })}
+                      <span
+                        className={cn(
+                          "mt-1 font-mono text-[9px] tabular-nums font-medium",
+                          isSelected
+                            ? "text-primary-foreground"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {count} free
+                      </span>
+
+                      {slot.isLunch && (
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-flex items-center gap-0.5 text-[8px] uppercase tracking-wider font-medium",
+                            isSelected ? "text-primary-foreground/80" : "text-amber-600 dark:text-amber-400"
+                          )}
+                        >
+                          <Utensils className="size-2" />
+                          Lunch
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Search and Secondary Filter Toolbar */}
-      <div className="space-y-3">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          {/* Search box with hotkey hint */}
-          <div className="relative flex-1 max-w-md">
-            <Search
-              className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              strokeWidth={1.75}
-            />
-            <Input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search room, building, floor (e.g. 302, EB, Apple)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8.5 pr-14 h-9 text-sm"
-            />
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <X className="size-3.5" />
-                </button>
-              ) : (
-                <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                  /
-                </kbd>
+      {/* 2. Campus Building Tabs: Geography-Based (Where am I right now?) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {BUILDING_OPTIONS.map((opt) => {
+          const isSelected = selectedBuilding === opt.id;
+          const count = result?.buildingCounts?.[opt.id] ?? 0;
+
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setSelectedBuilding(opt.id)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-medium transition-all cursor-pointer shrink-0 shadow-2xs select-none",
+                isSelected
+                  ? "border-foreground bg-foreground text-background font-semibold"
+                  : "border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground"
               )}
-            </div>
-          </div>
-
-          {/* Right actions: View mode switch & Refresh */}
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("grouped")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                  viewMode === "grouped"
-                    ? "bg-card text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title="Group rooms by building block"
-              >
-                <Building2 className="size-3.5" />
-                <span className="hidden sm:inline">By Block</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                  viewMode === "grid"
-                    ? "bg-card text-foreground shadow-2xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title="View all rooms in a grid"
-              >
-                <LayoutGrid className="size-3.5" />
-                <span className="hidden sm:inline">All Rooms</span>
-              </button>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              <RefreshCw
-                className="size-3.5"
-                strokeWidth={1.75}
-              />
-              <span className="hidden sm:inline">Refresh</span>
-            </Button>
+              {opt.id !== "all" && (
+                <BuildingIcon
+                  id={opt.id}
+                  className={cn("size-3.5", isSelected ? "text-background" : "text-muted-foreground")}
+                />
+              )}
+              <span>{opt.shortLabel}</span>
+              <span
+                className={cn(
+                  "font-mono text-[10px] tabular-nums px-1.5 py-0.5 rounded-full font-semibold",
+                  isSelected
+                    ? "bg-background/20 text-background"
+                    : "bg-muted text-foreground"
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Refinement Toolbar: Search, Long Session Toggle & Floor Filter */}
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-sm">
+          <Search
+            className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            strokeWidth={1.75}
+          />
+          <Input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search room code (e.g. EB 204, 302, Lab)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8.5 pr-8 h-9 text-xs"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="size-3" />
+            </button>
+          ) : (
+            <kbd className="hidden sm:inline-flex absolute right-2.5 top-1/2 -translate-y-1/2 h-4.5 select-none items-center rounded border border-border bg-muted px-1.5 font-mono text-[9px] font-medium text-muted-foreground">
+              /
+            </kbd>
+          )}
+        </div>
+
+        {/* Refinements: Long Study Session Toggle + Floor Chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Long Study Session Toggle (The student's #1 reassurance against being kicked out) */}
+          <button
+            type="button"
+            onClick={() => setLongSessionOnly((prev) => !prev)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer select-none",
+              longSessionOnly
+                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold shadow-2xs"
+                : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            )}
+            title="Filter rooms with at least 2 consecutive vacant periods"
+          >
+            <Hourglass className="size-3" />
+            <span>Long study (≥2 periods free)</span>
+            {longSessionCount > 0 && (
+              <span className="font-mono text-[10px] tabular-nums font-semibold opacity-80">
+                ({longSessionCount})
+              </span>
+            )}
+          </button>
+
+          {/* Floor Chips */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+            {FLOOR_OPTIONS.map((fl) => {
+              const isSelected = selectedFloor === fl.id;
+              return (
+                <button
+                  key={String(fl.id)}
+                  type="button"
+                  onClick={() => setSelectedFloor(fl.id)}
+                  className={cn(
+                    "rounded-md border px-2 py-1 font-mono text-[10px] transition-colors cursor-pointer select-none",
+                    isSelected
+                      ? "border-foreground bg-foreground text-background font-medium"
+                      : "border-border bg-card text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+                  )}
+                >
+                  {fl.label}
+                </button>
+              );
+            })}
           </div>
-        </div>
-
-        {/* Building Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          <span className="text-[11px] font-medium text-muted-foreground shrink-0 flex items-center gap-1 mr-1">
-            <ListFilter className="size-3" />
-            Block:
-          </span>
-          {BUILDING_OPTIONS.map((opt) => {
-            const isSelected = selectedBuilding === opt.id;
-            const count = result?.buildingCounts?.[opt.id] ?? 0;
-
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setSelectedBuilding(opt.id)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs whitespace-nowrap transition-colors",
-                  isSelected
-                    ? "border-primary bg-primary text-primary-foreground font-semibold shadow-2xs"
-                    : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground font-normal"
-                )}
-              >
-                <span>{opt.shortLabel}</span>
-                {result && (
-                  <span
-                    className={cn(
-                      "font-mono text-[10px] tabular-nums px-1.5 py-px rounded-full",
-                      isSelected
-                        ? "bg-primary-foreground/20 text-primary-foreground font-medium"
-                        : "bg-muted text-foreground font-medium"
-                    )}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Floor Filter Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          <span className="text-[11px] font-medium text-muted-foreground shrink-0 flex items-center gap-1 mr-1">
-            <MapPin className="size-3" />
-            Floor:
-          </span>
-          {FLOOR_OPTIONS.map((fl) => {
-            const isSelected = selectedFloor === fl.id;
-            return (
-              <button
-                key={String(fl.id)}
-                type="button"
-                onClick={() => setSelectedFloor(fl.id)}
-                className={cn(
-                  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-[11px] whitespace-nowrap transition-colors",
-                  isSelected
-                    ? "border-foreground bg-foreground text-background font-medium"
-                    : "border-border bg-background text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-                )}
-              >
-                {fl.label}
-              </button>
-            );
-          })}
 
           {hasActiveFilters && (
             <button
               type="button"
               onClick={resetAllFilters}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium shrink-0"
+              className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium shrink-0 cursor-pointer ml-1"
             >
               <X className="size-3" />
-              Reset filters
+              <span>Reset</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Slim Summary / Metrics Ribbon */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border py-2 text-[12px] text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-3">
-          <span>
-            <strong className="font-mono text-sm font-semibold tabular-nums text-foreground">
-              {filteredRooms.length}
-            </strong>{" "}
-            {filteredRooms.length === 1 ? "room" : "rooms"} available
-            {hasActiveFilters && result ? (
-              <span className="text-muted-foreground"> (filtered from {result.total})</span>
-            ) : null}
-          </span>
+      {/* 4. Filter Results Summary & Quick Guidance */}
+      <div className="flex items-center justify-between border-b border-border/60 pb-2 text-xs text-muted-foreground">
+        <p>
+          Showing <strong className="font-mono text-foreground font-semibold">{filteredRooms.length}</strong>{" "}
+          vacant room{filteredRooms.length === 1 ? "" : "s"}
+          {selectedBuilding !== "all" ? ` in ${BUILDING_OPTIONS.find((b) => b.id === selectedBuilding)?.shortLabel}` : ""}
+          {hasActiveFilters ? ` (filtered from ${result?.total ?? 0})` : ""}
+        </p>
 
-          {topBuilding && (
-            <>
-              <span className="text-border">·</span>
-              <span>
-                Most vacancies in{" "}
-                <strong className="text-foreground">{topBuilding.label}</strong> (
-                {topBuilding.count})
-              </span>
-            </>
-          )}
-
-          <span className="text-border">·</span>
-          <span className="flex items-center gap-1 text-[11px]">
-            <Info className="size-3" />
-            Click any room to view full day schedule
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 font-mono text-[11px]">
-          <span>
-            {weekdays.find((d) => d.id === selectedDay)?.label} · Period {selectedPeriod}
-          </span>
-          <span className="text-border">·</span>
-          <span>{activePeriodSlot?.start}–{activePeriodSlot?.end}</span>
-        </div>
+        <span className="text-[11px] text-muted-foreground hidden sm:inline">
+          Tap any room to view full day schedule
+        </span>
       </div>
 
-      {/* Content Area */}
+      {/* 5. Main Room List: Grouped by Building Blocks for spatial clarity */}
       {filteredRooms.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border py-14 px-4 text-center">
+        <div className="rounded-xl border border-dashed border-border py-14 px-4 text-center bg-card/40">
           <DoorOpen
-            className="mx-auto mb-2 size-8 text-muted-foreground/50"
+            className="mx-auto mb-3 size-8 text-muted-foreground/50"
             strokeWidth={1.5}
           />
-          <p className="text-sm font-medium text-foreground">
+          <h3 className="text-sm font-semibold text-foreground">
             {hasActiveFilters
-              ? "No rooms match your search or filter criteria"
-              : `All classrooms occupied during Period ${selectedPeriod}`}
-          </p>
+              ? "No rooms match your filters"
+              : `All rooms occupied during Period ${selectedPeriod}`}
+          </h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
             {hasActiveFilters
-              ? "Try adjusting your search terms or clearing floor and block filters."
-              : "Classes are scheduled across all registered rooms for this time slot."}
+              ? "Try resetting the floor filter, duration filter, or search keywords."
+              : "Classes are currently scheduled across all campus blocks for this time slot."}
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-2">
@@ -984,7 +811,7 @@ export function VacantClassroomsView({
                 onClick={resetAllFilters}
                 className="h-8 text-xs"
               >
-                Clear all filters
+                Reset all filters
               </Button>
             ) : selectedPeriod < 9 ? (
               <Button
@@ -999,73 +826,52 @@ export function VacantClassroomsView({
             ) : null}
           </div>
         </div>
-      ) : viewMode === "grouped" ? (
-        /* Grouped by Building Block View */
-        <div className="space-y-7">
-          {groupedRooms.map((group) => {
-            return (
-              <section key={group.id} className="space-y-3">
-                <div className="flex items-center justify-between border-b border-border/70 pb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-6 items-center justify-center rounded-md border border-border/60 bg-muted/60">
-                      <BuildingBlockIcon id={group.id} className="size-3.5 text-foreground/80" />
-                    </div>
-                    <h2 className="text-[13px] font-semibold text-foreground tracking-tight">
-                      {group.title}
-                    </h2>
-                  </div>
-
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {group.rooms.length} {group.rooms.length === 1 ? "room" : "rooms"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {group.rooms.map((room) => (
-                    <RoomCard
-                      key={room.name}
-                      room={room}
-                      periodNumber={selectedPeriod}
-                      onOpenSchedule={setInspectedRoom}
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
       ) : (
-        /* Flat Grid View */
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {filteredRooms.map((room) => (
-            <RoomCard
-              key={room.name}
-              room={room}
-              periodNumber={selectedPeriod}
-              onOpenSchedule={setInspectedRoom}
-            />
+        <div className="space-y-8">
+          {groupedRooms.map((group) => (
+            <section key={group.id} className="space-y-3">
+              {/* Section Header: Icon + Building Title + Count */}
+              <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex size-6 items-center justify-center rounded-md border border-border/60 bg-muted/50 text-foreground">
+                    <BuildingIcon id={group.id} className="size-3.5" />
+                  </div>
+                  <h3 className="text-[13px] font-semibold text-foreground tracking-tight">
+                    {group.title}
+                  </h3>
+                </div>
+
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {group.rooms.length} available
+                </span>
+              </div>
+
+              {/* Responsive Room Grid */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {group.rooms.map((room) => (
+                  <RoomCard
+                    key={room.name}
+                    room={room}
+                    periodNumber={selectedPeriod}
+                    periodEnd={activePeriodSlot?.end}
+                    onOpenSchedule={setInspectedRoom}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
 
-      {/* Room Full Day Timeline Inspector Dialog */}
+      {/* 6. Interactive Room Full Day Schedule Inspector Modal */}
       <Dialog open={Boolean(inspectedRoom)} onOpenChange={(open) => !open && setInspectedRoom(null)}>
         <DialogContent className="sm:max-w-md">
           {inspectedRoom && (
             <>
               <DialogHeader>
                 <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium",
-                      getBuildingTheme(inspectedRoom.building).badge
-                    )}
-                  >
-                    <RoomIcon
-                      building={inspectedRoom.building}
-                      isLab={inspectedRoom.isLab}
-                      className="size-3 shrink-0"
-                    />
+                  <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-xs font-mono text-muted-foreground">
+                    <BuildingIcon id={inspectedRoom.building} className="size-3" />
                     <span>{inspectedRoom.buildingLabel}</span>
                   </span>
                   {inspectedRoom.floorLabel && (
@@ -1078,69 +884,85 @@ export function VacantClassroomsView({
                   {inspectedRoom.name}
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Availability schedule for{" "}
+                  Full day availability schedule on{" "}
                   <strong className="text-foreground capitalize">{selectedDay}</strong> across all 9 campus periods.
                 </DialogDescription>
               </DialogHeader>
 
-              {/* Day Timeline Grid */}
-              <div className="space-y-2 py-2">
-                <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pr-1">
+              {/* Day Visual Bar Overview */}
+              <div className="mt-1 mb-2">
+                <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Day timeline</span>
+                  <span className="font-mono text-foreground font-medium">
+                    {roomScheduleTimeline.filter((s) => s.isFree).length} of 9 periods vacant
+                  </span>
+                </div>
+                <div className="grid grid-cols-9 gap-1 h-2 rounded bg-muted p-0.5 border border-border/50">
                   {roomScheduleTimeline.map((slot) => {
                     const isSelectedP = slot.period === selectedPeriod;
                     return (
                       <div
                         key={slot.period}
+                        title={`Period ${slot.period} (${slot.start}–${slot.end}): ${slot.isFree ? "Vacant" : "Occupied"}`}
                         className={cn(
-                          "flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors",
-                          isSelectedP && "ring-2 ring-primary/60 border-primary/40",
-                          slot.isFree
-                            ? "bg-emerald-500/5 border-emerald-500/20 text-foreground"
-                            : "bg-muted/40 border-border/50 text-muted-foreground opacity-60"
+                          "h-full rounded-xs transition-colors",
+                          slot.isFree ? "bg-emerald-500" : "bg-muted-foreground/20",
+                          isSelectedP && "ring-1 ring-foreground ring-offset-1 ring-offset-background"
                         )}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={cn(
-                              "font-mono text-xs font-semibold px-1.5 py-0.5 rounded",
-                              isSelectedP ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
-                            )}
-                          >
-                            P{slot.period}
-                          </span>
-                          <span className="font-mono text-[11px] text-muted-foreground">
-                            {slot.slotLabel}
-                          </span>
-                          {slot.isLunch && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-600 dark:text-amber-400 font-medium uppercase">
-                              <Utensils className="size-2.5" />
-                              Lunch
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          {slot.isFree ? (
-                            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                              <span className="size-1.5 rounded-full bg-emerald-500" />
-                              Vacant
-                            </span>
-                          ) : (
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                              Occupied
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      />
                     );
                   })}
                 </div>
               </div>
 
-              {/* Quick Actions Footer */}
+              {/* Period by Period List */}
+              <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border bg-card max-h-72 overflow-y-auto">
+                {roomScheduleTimeline.map((slot) => {
+                  const isSelectedP = slot.period === selectedPeriod;
+                  return (
+                    <div
+                      key={slot.period}
+                      className={cn(
+                        "flex items-center justify-between px-3 py-2 text-xs transition-colors",
+                        isSelectedP && "bg-muted/70 font-medium",
+                        !slot.isFree && "opacity-50"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[11px] font-semibold tabular-nums text-foreground">
+                          P{slot.period}
+                        </span>
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          {slot.slotLabel}
+                        </span>
+                        {slot.isLunch && (
+                          <span className="text-[9px] uppercase font-mono text-amber-600 dark:text-amber-400">
+                            Lunch
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        {slot.isFree ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            Vacant
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            Occupied
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Modal Footer */}
               <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs">
-                <span className="font-mono text-muted-foreground text-[11px]">
-                  {roomScheduleTimeline.filter((s) => s.isFree).length} of 9 periods free
+                <span className="text-muted-foreground text-[11px]">
+                  Room type: <strong className="text-foreground">{inspectedRoom.roomType}</strong>
                 </span>
                 <Button
                   variant="outline"

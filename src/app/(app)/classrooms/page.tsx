@@ -26,11 +26,11 @@ export default function ClassroomsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-10 w-full justify-center sm:h-8 sm:w-auto text-xs"
+            className="h-10 w-full justify-center sm:h-8 sm:w-auto"
             nativeButton={false}
             render={<Link href="/schedule" />}
           >
-            <Calendar className="size-3.5" strokeWidth={1.75} />
+            <Calendar className="size-3.5 text-foreground/70" strokeWidth={1.75} />
             <span>Timetable</span>
           </Button>
         }

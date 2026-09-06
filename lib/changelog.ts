@@ -59,6 +59,10 @@ export const changelog: ChangelogEntry[] = [
         text: "Period switcher vacancy badges showing exact number of free classrooms available for each time slot upfront.",
       },
       {
+        kind: "added",
+        text: "Long Session (≥2 periods) filter for finding classrooms with uninterrupted multi-period study availability, alongside visual 9-period daily availability strips in the room inspector.",
+      },
+      {
         kind: "changed",
         text: "Fully indigenous, self-contained campus schedule dataset with zero external network dependencies and instant offline lookups.",
       },
