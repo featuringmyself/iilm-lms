@@ -85,6 +85,7 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
         "transition-colors duration-150"
       )}
     >
+      {/* Top Header Status */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
@@ -97,89 +98,60 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
             {next.nowHm}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-[12px]">
-          <Link
-            href="/classrooms"
-            className="inline-flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <DoorOpen className="size-3 text-primary" strokeWidth={1.75} />
-            <span>Vacant rooms</span>
-          </Link>
-          <span className="text-border">·</span>
-          <Link
-            href="/schedule"
-            className="inline-flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Full timetable
-            <ArrowRight className="size-3" strokeWidth={1.75} />
-          </Link>
-        </div>
+        <Link
+          href="/schedule"
+          className="inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Full timetable
+          <ArrowRight className="size-3" strokeWidth={1.75} />
+        </Link>
       </div>
 
       {next.classItem ? (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0 space-y-3">
-            <div>
-              <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                {next.classItem.entry.code}
-                {next.classItem.entry.group ? (
-                  <>
-                    <span className="mx-1.5 text-border">·</span>
-                    {next.classItem.entry.group}
-                  </>
-                ) : null}
-              </p>
-              <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                {next.classItem.entry.name}
-              </h2>
-            </div>
+        <>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div>
+                <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {next.classItem.entry.code}
+                  {next.classItem.entry.group ? (
+                    <>
+                      <span className="mx-1.5 text-border">·</span>
+                      {next.classItem.entry.group}
+                    </>
+                  ) : null}
+                </p>
+                <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                  {next.classItem.entry.name}
+                </h2>
+              </div>
 
-            <ClassMeta item={next.classItem} />
+              <ClassMeta item={next.classItem} />
 
-            {next.status === "in_progress" && next.upNext ? (
-              <div className="border-t border-border pt-3">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              {next.status === "in_progress" && next.upNext ? (
+                <div className="border-t border-border pt-3">
+                  <p className="mb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
                     Up next
                   </p>
-                  <Link
-                    href="/classrooms"
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
-                  >
-                    <DoorOpen className="size-3" strokeWidth={1.75} />
-                    <span>Find vacant room</span>
-                  </Link>
+                  <p className="text-[13px] text-foreground">
+                    <span className="font-medium">{next.upNext.entry.name}</span>
+                    <span className="mx-1.5 text-border">·</span>
+                    <span className="font-mono tabular-nums text-muted-foreground">
+                      {next.upNext.label}
+                    </span>
+                  </p>
                 </div>
-                <p className="text-[13px] text-foreground">
-                  <span className="font-medium">{next.upNext.entry.name}</span>
-                  <span className="mx-1.5 text-border">·</span>
-                  <span className="font-mono tabular-nums text-muted-foreground">
-                    {next.upNext.label}
-                  </span>
+              ) : null}
+
+              {next.status !== "in_progress" && next.remainingToday.length > 0 ? (
+                <p className="text-[12px] text-muted-foreground">
+                  {next.remainingToday.length} more class
+                  {next.remainingToday.length === 1 ? "" : "es"} after this
+                  {next.status === "later" ? ` on ${next.weekdayLabel}` : ""}
                 </p>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
 
-            {next.status !== "in_progress" && next.remainingToday.length > 0 ? (
-              <p className="text-[12px] text-muted-foreground">
-                {next.remainingToday.length} more class
-                {next.remainingToday.length === 1 ? "" : "es"} after this
-                {next.status === "later" ? ` on ${next.weekdayLabel}` : ""}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex w-full flex-col gap-2 shrink-0 sm:w-auto sm:flex-row sm:items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-full justify-center sm:h-8 sm:w-auto text-xs"
-              nativeButton={false}
-              render={<Link href="/classrooms" />}
-            >
-              <DoorOpen className="size-3.5 text-primary" strokeWidth={1.75} />
-              <span>Vacant rooms</span>
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -191,31 +163,36 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
               <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
             </Button>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background">
-              <Calendar
-                className="size-5 text-foreground/65"
-                strokeWidth={1.75}
-              />
-            </div>
-            <p className="max-w-xl text-[13px] leading-relaxed text-muted-foreground">
-              Nothing on the timetable for this week.
+
+          {/* Contextual Vacant Study Space Strip */}
+          <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-3 text-[12px] sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-1.5 text-muted-foreground">
+              <DoorOpen className="size-3.5 text-primary shrink-0" strokeWidth={1.75} />
+              <span>Need a quiet study spot or free classroom?</span>
             </p>
-          </div>
-          <div className="flex w-full flex-col gap-2 shrink-0 sm:w-auto sm:flex-row sm:items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-full justify-center sm:h-8 sm:w-auto text-xs"
-              nativeButton={false}
-              render={<Link href="/classrooms" />}
+            <Link
+              href="/classrooms"
+              className="inline-flex items-center gap-1 font-medium text-foreground transition-colors hover:text-primary shrink-0"
             >
-              <DoorOpen className="size-3.5 text-primary" strokeWidth={1.75} />
-              <span>Vacant rooms</span>
-            </Button>
+              <span>Find vacant classrooms</span>
+              <ArrowRight className="size-3" strokeWidth={1.75} />
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background">
+                <Calendar
+                  className="size-5 text-foreground/65"
+                  strokeWidth={1.75}
+                />
+              </div>
+              <p className="max-w-xl text-[13px] leading-relaxed text-muted-foreground">
+                Nothing on the timetable for this week.
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -227,7 +204,22 @@ export function NextClassCard({ next, matched }: NextClassCardProps) {
               <ArrowRight data-icon="inline-end" strokeWidth={1.75} />
             </Button>
           </div>
-        </div>
+
+          {/* Contextual Vacant Study Space Strip */}
+          <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-3 text-[12px] sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-1.5 text-muted-foreground">
+              <DoorOpen className="size-3.5 text-primary shrink-0" strokeWidth={1.75} />
+              <span>Looking for an open classroom on campus?</span>
+            </p>
+            <Link
+              href="/classrooms"
+              className="inline-flex items-center gap-1 font-medium text-foreground transition-colors hover:text-primary shrink-0"
+            >
+              <span>Find vacant classrooms</span>
+              <ArrowRight className="size-3" strokeWidth={1.75} />
+            </Link>
+          </div>
+        </>
       )}
     </section>
   );
