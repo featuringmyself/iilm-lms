@@ -11,6 +11,9 @@ export interface CampusPeriodStatus {
   day: Weekday;
   period: number;
   isLiveNow: boolean;
+  livePeriod?: number;
+  liveDay?: Weekday;
+  todayWeekday: Weekday | null;
   nowHm: string;
   weekdayLabel: string;
   slotLabel: string;
@@ -21,11 +24,71 @@ export interface CampusPeriodStatus {
   isWeekend?: boolean;
 }
 
+export function getNextCampusDay(currentWeekday: Weekday | null): Weekday {
+  switch (currentWeekday) {
+    case "monday":
+      return "tuesday";
+    case "tuesday":
+      return "wednesday";
+    case "wednesday":
+      return "thursday";
+    case "thursday":
+      return "friday";
+    case "friday":
+      return "saturday";
+    case "saturday":
+    default:
+      // Saturday rolls over past Sunday to Monday.
+      // Sunday (null) rolls over to Monday.
+      return "monday";
+  }
+}
+
 export function getCurrentCampusPeriod(date = new Date()): CampusPeriodStatus {
   const { weekday, hours, minutes, nowHm, weekdayLabel } = getCampusNow(date);
   const nowMinutes = hours * 60 + minutes;
-  const activeDay: Weekday = weekday ?? "monday";
 
+  // Campus daily timetable parameters:
+  // Period 1 starts at 09:00 (540m), Period 9 ends at 17:15 (1035m).
+  const firstSlotStart = 9 * 60; // 09:00
+
+  // 1. Sunday: Campus is closed. Next best available slot is Monday Period 1 (09:00).
+  if (!weekday) {
+    const mondaySlot = timeSlots[0];
+    return {
+      day: "monday",
+      period: 1,
+      isLiveNow: false,
+      todayWeekday: null,
+      nowHm,
+      weekdayLabel: "Sunday",
+      slotLabel: `${mondaySlot.start} – ${mondaySlot.end}`,
+      isBeforeClasses: false,
+      isAfterClasses: false,
+      isWeekend: true,
+    };
+  }
+
+  // 2. Weekday before classes (before 09:00, e.g. 08:00 AM):
+  // Classes start today at 09:00. Preselect today's Period 1.
+  if (nowMinutes < firstSlotStart) {
+    const firstSlot = timeSlots[0];
+    return {
+      day: weekday,
+      period: 1,
+      isLiveNow: false,
+      todayWeekday: weekday,
+      nowHm,
+      weekdayLabel,
+      slotLabel: `${firstSlot.start} – ${firstSlot.end}`,
+      isBeforeClasses: true,
+      isAfterClasses: false,
+      isWeekend: false,
+    };
+  }
+
+  // 3. Weekday during active campus hours (09:00 to 17:15):
+  // Match the exact current live slot.
   for (const slot of timeSlots) {
     const [startH, startM] = slot.start.split(":").map(Number);
     const [endH, endM] = slot.end.split(":").map(Number);
@@ -35,31 +98,40 @@ export function getCurrentCampusPeriod(date = new Date()): CampusPeriodStatus {
     if (nowMinutes >= startTotal && nowMinutes < endTotal) {
       const minutesLeft = endTotal - nowMinutes;
       return {
-        day: activeDay,
+        day: weekday,
         period: slot.period,
-        isLiveNow: Boolean(weekday),
+        isLiveNow: true,
+        livePeriod: slot.period,
+        liveDay: weekday,
+        todayWeekday: weekday,
         nowHm,
         weekdayLabel,
         slotLabel: `${slot.start} – ${slot.end}`,
         minutesLeft,
         isLunch: Boolean(slot.isLunch),
+        isBeforeClasses: false,
+        isAfterClasses: false,
+        isWeekend: false,
       };
     }
   }
 
-  const isBeforeClasses = Boolean(weekday) && nowMinutes < 9 * 60;
-  const isAfterClasses = Boolean(weekday) && nowMinutes >= 17 * 60 + 15;
+  // 4. Weekday after classes have ended for the day (at or after 17:15, e.g. 19:00 / 7:00 PM):
+  // Today's classes are over. Preselect the NEXT campus day's Period 1 (09:00 AM).
+  const nextDay = getNextCampusDay(weekday);
+  const nextSlot = timeSlots[0];
 
   return {
-    day: activeDay,
+    day: nextDay,
     period: 1,
     isLiveNow: false,
+    todayWeekday: weekday,
     nowHm,
     weekdayLabel,
-    slotLabel: `${timeSlots[0].start} – ${timeSlots[0].end}`,
-    isBeforeClasses,
-    isAfterClasses,
-    isWeekend: !weekday,
+    slotLabel: `${nextSlot.start} – ${nextSlot.end}`,
+    isBeforeClasses: false,
+    isAfterClasses: true,
+    isWeekend: false,
   };
 }
 

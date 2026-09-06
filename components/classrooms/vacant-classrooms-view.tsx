@@ -32,6 +32,7 @@ import {
 import {
   BUILDING_OPTIONS,
   type BuildingId,
+  type CampusPeriodStatus,
   type VacantRoom,
   type VacantRoomsResult,
   getAllRoomSchedule,
@@ -194,7 +195,9 @@ export function VacantClassroomsView({
   initialDay,
   initialPeriod,
 }: VacantClassroomsViewProps) {
-  const currentCampus = useMemo(() => getCurrentCampusPeriod(), []);
+  const [currentCampus, setCurrentCampus] = useState<CampusPeriodStatus>(() =>
+    getCurrentCampusPeriod()
+  );
 
   const [selectedDay, setSelectedDay] = useState<Weekday>(
     initialDay ?? initialResult?.day ?? currentCampus.day
@@ -207,6 +210,14 @@ export function VacantClassroomsView({
     initialResult ?? getVacantRooms(selectedDay, selectedPeriod)
   );
 
+  // Keep campus live status refreshed throughout the day
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentCampus(getCurrentCampusPeriod());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Filters
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingId>("all");
   const [selectedFloor, setSelectedFloor] = useState<FloorFilter>("all");
@@ -216,10 +227,13 @@ export function VacantClassroomsView({
   // Room Inspector Modal
   const [inspectedRoom, setInspectedRoom] = useState<VacantRoom | null>(null);
 
+  const liveDay = currentCampus.liveDay ?? currentCampus.day;
+  const livePeriod = currentCampus.livePeriod ?? currentCampus.period;
+
   const isCurrentLiveSlot =
     currentCampus.isLiveNow &&
-    selectedDay === currentCampus.day &&
-    selectedPeriod === currentCampus.period;
+    selectedDay === liveDay &&
+    selectedPeriod === livePeriod;
 
   const handleSelectSlot = useCallback(
     (day: Weekday, period: number) => {
@@ -232,7 +246,11 @@ export function VacantClassroomsView({
 
   const handleJumpToNow = () => {
     const campus = getCurrentCampusPeriod();
-    handleSelectSlot(campus.day, campus.period);
+    if (campus.isLiveNow && campus.liveDay && campus.livePeriod) {
+      handleSelectSlot(campus.liveDay, campus.livePeriod);
+    } else {
+      handleSelectSlot(campus.day, campus.period);
+    }
   };
 
   const handleStepPeriod = (direction: -1 | 1) => {
@@ -374,7 +392,7 @@ export function VacantClassroomsView({
           <div className="flex items-center gap-1 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none">
             {weekdays.map((day) => {
               const isSelected = selectedDay === day.id;
-              const isToday = currentCampus.day === day.id;
+              const isToday = currentCampus.todayWeekday === day.id;
 
               return (
                 <button
@@ -411,7 +429,7 @@ export function VacantClassroomsView({
                 onClick={handleJumpToNow}
                 className="text-[11px] text-primary hover:underline font-medium cursor-pointer"
               >
-                Jump to P{currentCampus.period}
+                Jump to P{livePeriod}
               </button>
             )}
             <div className="flex items-center gap-0.5">
@@ -445,8 +463,8 @@ export function VacantClassroomsView({
             const isSelected = selectedPeriod === slot.period;
             const isSlotNow =
               currentCampus.isLiveNow &&
-              selectedDay === currentCampus.day &&
-              currentCampus.period === slot.period;
+              selectedDay === liveDay &&
+              livePeriod === slot.period;
 
             return (
               <button
