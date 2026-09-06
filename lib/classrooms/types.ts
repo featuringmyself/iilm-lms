@@ -20,6 +20,8 @@ export interface VacantRoom {
   consecutivePeriods?: number;
   freeUntilPeriod?: number;
   freeUntilTime?: string;
+  scheduleOverview?: boolean[];
+  totalFreePeriods?: number;
 }
 
 export interface BuildingFilterOption {

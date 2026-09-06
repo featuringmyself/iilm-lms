@@ -40,7 +40,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "added",
-        text: "Floor-level filtering (Floor 1–4) and one-click room name clipboard copying.",
+        text: "Floor-level filtering (Floor 1–4) and campus block categorization.",
       },
       {
         kind: "added",
@@ -48,7 +48,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "added",
-        text: "Dashboard Quick Link, sidebar navigation, and keyboard shortcuts (arrow keys for period navigation, / for search).",
+        text: "Dashboard Quick Link, sidebar navigation, and keyboard shortcuts (arrow keys and 1–9 number keys for period navigation).",
       },
       {
         kind: "added",
@@ -60,7 +60,7 @@ export const changelog: ChangelogEntry[] = [
       },
       {
         kind: "added",
-        text: "Long Session (≥2 periods) filter for finding classrooms with uninterrupted multi-period study availability, alongside visual 9-period daily availability strips in the room inspector.",
+        text: "Long Session (≥2 periods) filter for finding classrooms with uninterrupted multi-period study availability, alongside visual 9-period daily availability strips in both room cards and the inspector dialog.",
       },
       {
         kind: "changed",

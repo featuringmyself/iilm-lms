@@ -21,7 +21,6 @@ export default function ClassroomsPage() {
     <>
       <PageHeader
         title="Vacant Classrooms"
-        description="Find available study spaces and empty lecture halls across IILM University campus."
         action={
           <Button
             variant="outline"

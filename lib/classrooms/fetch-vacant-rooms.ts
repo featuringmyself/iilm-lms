@@ -188,11 +188,23 @@ export function getVacantRooms(
     const untilSlot = timeSlots.find((s) => s.period === freeUntilPeriod);
     const freeUntilTime = untilSlot ? untilSlot.end : undefined;
 
+    // Calculate schedule overview across all 9 periods for this room on this day
+    const scheduleOverview: boolean[] = [];
+    let totalFreePeriods = 0;
+    for (let p = 1; p <= 9; p++) {
+      const pList = dayData?.[p] ?? [];
+      const free = pList.includes(base.name);
+      scheduleOverview.push(free);
+      if (free) totalFreePeriods++;
+    }
+
     return {
       ...base,
       consecutivePeriods,
       freeUntilPeriod,
       freeUntilTime,
+      scheduleOverview,
+      totalFreePeriods,
     };
   });
 
