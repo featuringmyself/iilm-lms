@@ -138,21 +138,17 @@ function RoomCard({
           {room.roomType}
         </p>
 
-        {/* Hero Peace-of-Mind Status Pill */}
-        <div className="mt-3">
+        {/* Status Pill */}
+        <div className="mt-2.5">
           {isLongSession ? (
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-800 dark:text-emerald-200">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:text-emerald-200 whitespace-nowrap">
               <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span>Free for {consecutive} periods</span>
-              {room.freeUntilTime && (
-                <span className="font-mono text-[10px] opacity-80">(till {room.freeUntilTime})</span>
-              )}
+              <span>Free until {room.freeUntilTime ?? periodEnd}</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-[11px] font-medium text-muted-foreground">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground whitespace-nowrap">
               <Clock className="size-3 shrink-0" />
-              <span>Free this period</span>
-              {periodEnd && <span className="font-mono text-[10px] opacity-80">(till {periodEnd})</span>}
+              <span>Free until {periodEnd}</span>
             </div>
           )}
         </div>
@@ -409,7 +405,6 @@ export function VacantClassroomsView({
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-            <span className="hidden sm:inline">P{selectedPeriod} · {activePeriodSlot?.start}–{activePeriodSlot?.end}</span>
             {currentCampus.isLiveNow && !isCurrentLiveSlot && (
               <button
                 type="button"
@@ -452,7 +447,6 @@ export function VacantClassroomsView({
               currentCampus.isLiveNow &&
               selectedDay === currentCampus.day &&
               currentCampus.period === slot.period;
-            const slotVacancies = result?.periodCounts?.[slot.period] ?? 0;
 
             return (
               <button
@@ -460,7 +454,7 @@ export function VacantClassroomsView({
                 type="button"
                 onClick={() => handleSelectSlot(selectedDay, slot.period)}
                 className={cn(
-                  "group relative flex flex-col items-center justify-center rounded-lg border p-2 text-center transition-all cursor-pointer select-none",
+                  "group relative flex flex-col items-center justify-center rounded-lg border py-2 px-1 text-center transition-all cursor-pointer select-none",
                   isSelected
                     ? "border-primary bg-primary text-primary-foreground font-semibold shadow-xs"
                     : "border-border bg-background hover:bg-muted/70 text-foreground",
@@ -487,17 +481,6 @@ export function VacantClassroomsView({
                   )}
                 >
                   {slot.start}
-                </span>
-
-                <span
-                  className={cn(
-                    "mt-1 font-mono text-[9px] tabular-nums font-medium",
-                    isSelected
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground group-hover:text-foreground"
-                  )}
-                >
-                  {slotVacancies} free
                 </span>
 
                 {slot.isLunch && (
@@ -550,7 +533,7 @@ export function VacantClassroomsView({
             })}
           </div>
 
-          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 self-end sm:self-auto">
             {/* Long Study Session Toggle */}
             <Button
               variant={longSessionOnly ? "default" : "outline"}
@@ -640,14 +623,7 @@ export function VacantClassroomsView({
         </div>
       </div>
 
-      {/* 4. Section Summary */}
-      <div className="flex items-center justify-between border-b border-border/60 pb-2 text-xs text-muted-foreground font-mono">
-        <span>
-          <strong className="text-foreground font-semibold">{filteredRooms.length}</strong> vacant
-        </span>
-      </div>
-
-      {/* 5. Main Content: Grouped or Grid */}
+      {/* Main Content: Grouped or Grid */}
       {filteredRooms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-12 px-4 text-center">
           <DoorOpen
@@ -697,7 +673,7 @@ export function VacantClassroomsView({
                 </div>
 
                 <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                  {group.rooms.length} vacant
+                  {group.rooms.length}
                 </span>
               </div>
 
@@ -760,7 +736,7 @@ export function VacantClassroomsView({
                 <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                   <span>Day timeline</span>
                   <span className="text-foreground font-medium">
-                    {roomScheduleTimeline.filter((s) => s.isFree).length}/9 vacant
+                    {roomScheduleTimeline.filter((s) => s.isFree).length}/9 free
                   </span>
                 </div>
                 <div className="grid grid-cols-9 gap-1 h-2 rounded bg-muted p-0.5 border border-border/50">
