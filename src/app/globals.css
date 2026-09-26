@@ -350,7 +350,7 @@
   box-shadow:
     0 1px 0 rgb(255 255 255 / 0.18) inset,
     0 30px 60px -28px rgb(0 0 0 / 0.65);
-  animation: flash-face-swap 0.38s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  transition: background-color 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
 }
 
 @media (min-width: 640px) {
@@ -377,15 +377,8 @@
   font-size: 1.05em;
 }
 
-@keyframes flash-face-swap {
-  from {
-    opacity: 0.55;
-    transform: scale(0.985) rotateY(-8deg);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) rotateY(0deg);
-  }
+.flash-slab {
+  transition: transform 0.2s ease;
 }
 
 .flash-why-tip {
@@ -401,19 +394,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.flash-slab {
-  transition: transform 0.2s ease;
-}
-
-.flash-card-enter {
-  animation: flash-card-in 0.45s cubic-bezier(0.2, 0.9, 0.25, 1) both;
-}
-
-@keyframes flash-card-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 .flash-progress-bar {
@@ -518,7 +498,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .flash-progress-bar,
-  .flash-card-enter,
   .flash-unit-in,
   .flash-featured,
   .flash-lobby-hero,

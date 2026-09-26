@@ -84,34 +84,6 @@ export function QuickLinks({ courses }: QuickLinksProps) {
           />
         </Link>
 
-        <Link
-          href="/flashcards"
-          className={cn(
-            "group flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5",
-            "transition-colors duration-150 hover:border-foreground/20 hover:bg-muted/40",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          )}
-        >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background">
-            <Layers
-              className="size-3.5 text-foreground/70"
-              strokeWidth={1.75}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium text-foreground">
-              Flashcards
-            </p>
-            <p className="truncate font-mono text-[10px] text-muted-foreground">
-              Unit revision
-            </p>
-          </div>
-          <ArrowUpRight
-            className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-            strokeWidth={1.75}
-          />
-        </Link>
-
         {courses.map(({ semester, course }) => {
           const theme = getCourseTheme(course.slug);
           const Icon = theme.icon;
@@ -165,6 +137,34 @@ export function QuickLinks({ courses }: QuickLinksProps) {
             </Link>
           );
         })}
+
+        <Link
+          href="/flashcards"
+          className={cn(
+            "group flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2.5",
+            "transition-colors duration-150 hover:border-foreground/20 hover:bg-muted/40",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          )}
+        >
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background">
+            <Layers
+              className="size-3.5 text-foreground/70"
+              strokeWidth={1.75}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium text-foreground">
+              Flashcards
+            </p>
+            <p className="truncate font-mono text-[10px] text-muted-foreground">
+              Unit revision
+            </p>
+          </div>
+          <ArrowUpRight
+            className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+            strokeWidth={1.75}
+          />
+        </Link>
 
         {courses.length === 0 ? (
           <div className="col-span-full flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-[13px] text-muted-foreground">

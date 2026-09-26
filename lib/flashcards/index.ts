@@ -14,9 +14,4 @@ export {
   getFlashcardSubject,
   getReadyFlashcardDecks,
 } from "./catalog";
-export {
-  bumpFlashStreak,
-  readFlashStreak,
-  type FlashStreak,
-} from "./streak";
 export { distillWhyThis, type WhyThis } from "./why";

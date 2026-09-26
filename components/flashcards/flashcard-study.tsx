@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
-  Flame,
   ListChecks,
   Pencil,
   Play,
@@ -34,11 +33,6 @@ import type {
   FlashcardDeck,
   FlashcardPriority,
 } from "@/lib/flashcards";
-import {
-  bumpFlashStreak,
-  readFlashStreak,
-  type FlashStreak,
-} from "@/lib/flashcards/streak";
 import { distillWhyThis } from "@/lib/flashcards/why";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +54,6 @@ interface StudyState {
   learningHits: number;
   knownHits: number;
   direction: 1 | -1;
-  animKey: number;
   done: boolean;
 }
 
@@ -82,7 +75,6 @@ function initState(cards: Flashcard[]): StudyState {
     learningHits: 0,
     knownHits: 0,
     direction: 1,
-    animKey: 0,
     done: cards.length === 0,
   };
 }
@@ -120,7 +112,6 @@ function studyReducer(state: StudyState, action: StudyAction): StudyState {
           knownHits,
           flipped: false,
           done: true,
-          animKey: state.animKey + 1,
         };
       }
 
@@ -133,7 +124,6 @@ function studyReducer(state: StudyState, action: StudyAction): StudyState {
         knownHits,
         flipped: false,
         direction: 1,
-        animKey: state.animKey + 1,
         done: false,
       };
     }
@@ -146,7 +136,6 @@ function studyReducer(state: StudyState, action: StudyAction): StudyState {
         index: 0,
         flipped: false,
         direction: 1,
-        animKey: state.animKey + 1,
         done: pool.length === 0,
       };
     }
@@ -200,7 +189,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
   const hasCram = (deck.minimumExamSet?.length ?? 0) > 0;
   const [phase, setPhase] = useState<Phase>("lobby");
   const [filter, setFilter] = useState<StudyFilter>(hasCram ? "cram" : "all");
-  const [streak, setStreak] = useState<FlashStreak>(() => readFlashStreak());
   const [burst, setBurst] = useState<"known" | "learning" | null>(null);
   const activeCards = useMemo(
     () => filterCards(deck, filter),
@@ -274,15 +262,12 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
     window.setTimeout(() => setBurst(null), 340);
     dispatch({ type: "rate", rate });
     if (finishing) {
-      const nextStreak = bumpFlashStreak();
-      setStreak(nextStreak);
       posthog.capture("flashcard_session_complete", {
         course_slug: deck.courseSlug,
         unit_slug: deck.unitSlug,
         filter,
         known: state.knownHits + 1,
         learning: state.learningHits,
-        streak: nextStreak.count,
       });
     }
   }
@@ -338,7 +323,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
         deck={deck}
         counts={counts}
         hasCram={hasCram}
-        streak={streak}
         onStart={startSession}
       />
     );
@@ -351,7 +335,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
       learningHits={state.learningHits}
       filter={filter}
       counts={counts}
-      streak={streak}
       onRestart={() => startSession(filter)}
       onFullBank={() => startSession("all")}
       onLobby={() => setPhase("lobby")}
@@ -360,7 +343,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
     <StudySession
       deck={deck}
       filter={filter}
-      streak={streak}
       burst={burst}
       state={state}
       current={current}
@@ -382,7 +364,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
 function StudySession({
   deck,
   filter,
-  streak,
   burst,
   state,
   current,
@@ -398,7 +379,6 @@ function StudySession({
 }: {
   deck: FlashcardDeck;
   filter: StudyFilter;
-  streak: FlashStreak;
   burst: "known" | "learning" | null;
   state: StudyState;
   current?: Flashcard;
@@ -444,12 +424,6 @@ function StudySession({
             <p className="text-[11px] text-white/45">{filterLabel(filter)}</p>
           </div>
           <div className="flex items-center gap-2">
-            {streak.count > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-1 font-mono text-[11px] font-semibold text-[var(--flash-yellow)]">
-                <Flame className="size-3.5" strokeWidth={2} />
-                {streak.count}
-              </span>
-            ) : null}
             <span className="font-mono text-[13px] font-semibold tabular-nums text-white/70">
               {cardNumber}{" "}
               <span className="text-white/30">/</span> {total}
@@ -467,8 +441,7 @@ function StudySession({
         <div className="relative flex flex-1 flex-col justify-center">
           <div className="flash-rings" aria-hidden />
           <div
-            key={state.animKey}
-            className="flash-card-enter flash-slab relative"
+            className="flash-slab relative"
             onTouchStart={(e) => {
               touchStartXRef.current = e.changedTouches[0]?.clientX ?? null;
             }}
@@ -503,7 +476,6 @@ function StudySession({
               aria-pressed={state.flipped}
             >
               <div
-                key={state.flipped ? "check" : "prompt"}
                 className={cn(
                   "flash-slab-card",
                   state.flipped ? "is-check" : "is-prompt"
@@ -603,13 +575,11 @@ function DeckLobby({
   deck,
   counts,
   hasCram,
-  streak,
   onStart,
 }: {
   deck: FlashcardDeck;
   counts: Record<StudyFilter, number>;
   hasCram: boolean;
-  streak: FlashStreak;
   onStart: (filter: StudyFilter) => void;
 }) {
   const [showNotes, setShowNotes] = useState(false);
@@ -621,7 +591,7 @@ function DeckLobby({
   return (
     <div className="flex min-h-[calc(100svh-8.5rem)] w-full flex-col items-center justify-center py-6">
       <div className="mx-auto flex w-full max-w-md flex-col gap-8">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
         <Link
           href="/flashcards"
           className="inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -629,14 +599,6 @@ function DeckLobby({
         >
           <ArrowLeft className="size-4" strokeWidth={2} />
         </Link>
-        {streak.count > 0 ? (
-          <span className="inline-flex items-center gap-1.5 font-mono text-[14px] font-semibold tabular-nums text-orange-500">
-            <Flame className="size-4" strokeWidth={2.25} />
-            {streak.count}
-          </span>
-        ) : (
-          <span className="size-10" aria-hidden />
-        )}
       </div>
 
       <div className="text-center">
@@ -759,7 +721,6 @@ function SessionComplete({
   learningHits,
   filter,
   counts,
-  streak,
   onRestart,
   onFullBank,
   onLobby,
@@ -769,7 +730,6 @@ function SessionComplete({
   learningHits: number;
   filter: StudyFilter;
   counts: Record<StudyFilter, number>;
-  streak: FlashStreak;
   onRestart: () => void;
   onFullBank: () => void;
   onLobby: () => void;
@@ -792,12 +752,6 @@ function SessionComplete({
           <span>{total}</span>
           <span className="text-[var(--flash-know)]">{knownHits}✓</span>
           <span className="text-[var(--flash-forgot)]">{learningHits}↩</span>
-          {streak.count > 0 ? (
-            <span className="inline-flex items-center gap-0.5 text-orange-500">
-              <Flame className="size-3.5" strokeWidth={2} />
-              {streak.count}
-            </span>
-          ) : null}
         </div>
         <div className="mt-8 flex flex-col gap-2.5">
           <button

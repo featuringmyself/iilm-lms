@@ -4,9 +4,8 @@ import { Layers } from "lucide-react";
 
 import { CourseContentTabs } from "@/components/course-content-tabs";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import { getContentTree, getCourse, getSemester } from "@/lib/content";
-import { getFlashcardSubject } from "@/lib/flashcards";
+import { getReadyFlashcardDecks } from "@/lib/flashcards";
 
 export async function generateStaticParams() {
   const params: Array<{ semester: string; course: string }> = [];
@@ -44,9 +43,8 @@ export default async function CoursePage({
     pyqCount > 0 ? `${pyqCount} PYQ` : null,
   ].filter(Boolean);
 
-  const flashSubject = getFlashcardSubject(course.slug);
-  const readyDeck = flashSubject?.units.find(
-    (unit) => unit.ready && unit.cards.length > 0
+  const readyDeck = getReadyFlashcardDecks().find(
+    (deck) => deck.courseSlug === course.slug
   );
 
   return (
@@ -54,33 +52,6 @@ export default async function CoursePage({
       <PageHeader
         title={course.name}
         description={descriptionParts.join(" · ")}
-        action={
-          readyDeck ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              render={
-                <Link
-                  href={`/flashcards/${readyDeck.courseSlug}/${readyDeck.unitSlug}`}
-                />
-              }
-            >
-              <Layers className="size-3.5" strokeWidth={1.75} />
-              Study flashcards
-            </Button>
-          ) : flashSubject ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              render={<Link href={`/flashcards?course=${course.slug}`} />}
-            >
-              <Layers className="size-3.5" strokeWidth={1.75} />
-              Flashcards
-            </Button>
-          ) : null
-        }
       />
       <CourseContentTabs
         semesterSlug={semester.slug}
@@ -92,6 +63,33 @@ export default async function CoursePage({
         labs={course.labs}
         pyq={course.pyq}
       />
+      {readyDeck ? (
+        <div className="mt-10 border-t border-border pt-6">
+          <Link
+            href={`/flashcards/${readyDeck.courseSlug}/${readyDeck.unitSlug}`}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 transition-colors hover:border-foreground/20 hover:bg-muted/40"
+          >
+            <span className="flex min-w-0 items-center gap-2.5">
+              <Layers
+                className="size-4 shrink-0 text-muted-foreground"
+                strokeWidth={1.75}
+              />
+              <span className="min-w-0">
+                <span className="block text-[14px] font-medium text-foreground">
+                  Flashcards
+                </span>
+                <span className="block truncate text-[12px] text-muted-foreground">
+                  {readyDeck.unitLabel} ·{" "}
+                  {readyDeck.cards.length} cards
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 text-[12px] font-semibold text-muted-foreground">
+              Study →
+            </span>
+          </Link>
+        </div>
+      ) : null}
     </>
   );
 }
