@@ -24,6 +24,39 @@ export interface ChangelogEntry {
  */
 export const changelog: ChangelogEntry[] = [
   {
+    id: "2026-09-26-flashcards",
+    date: "2026-09-26",
+    title: "Flashcards",
+    summary:
+      "Immersive active-recall flashcards with Gen Z study-app UX, streaks, and a prioritized Quantum Physics Unit 3 exam bank.",
+    items: [
+      {
+        kind: "added",
+        text: "Flashcards hub at /flashcards covering every 1st-sem subject with unit slots.",
+      },
+      {
+        kind: "added",
+        text: "Quantum Physics Unit 3 exam question bank (56 prioritized Qs) with A/B/C tags, cram set, must-include checklists, and formula/diagram cues.",
+      },
+      {
+        kind: "changed",
+        text: "Study session redesigned as color-blocked stages (yellow prompt → lime check), flip CTA, Forgot/Know it ratings, card stack, and celebratory Good Job finish.",
+      },
+      {
+        kind: "added",
+        text: "Daily study streak (Asia/Kolkata) with lobby + hub flame counter to reinforce habit loops.",
+      },
+      {
+        kind: "fixed",
+        text: "Long answers and KaTeX formulas scroll inside the card instead of clipping off-screen.",
+      },
+      {
+        kind: "added",
+        text: "Sidebar, dashboard Quick Link, and course-page Study flashcards entry points.",
+      },
+    ],
+  },
+  {
     id: "2026-09-06-vacant-classroom-finder",
     date: "2026-09-06",
     title: "Vacant classroom finder",

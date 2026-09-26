@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, ChevronDown, DoorOpen } from "lucide-react";
+import { Calendar, ChevronDown, DoorOpen, Layers } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -96,6 +96,8 @@ export function AppSidebarClassroomsLink() {
 export function AppSidebarFooterNav() {
   const pathname = usePathname();
   const closeMobile = useCloseMobileSidebar();
+  const isFlashcardsActive =
+    pathname === "/flashcards" || pathname.startsWith("/flashcards/");
 
   return (
     <SidebarMenu className="gap-0.5">
@@ -119,6 +121,17 @@ export function AppSidebarFooterNav() {
         >
           <DoorOpen className="size-3.5! text-primary" strokeWidth={1.75} />
           <span className="truncate">Vacant Rooms</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={isFlashcardsActive}
+          size="sm"
+          className="h-8 text-[13px] font-normal transition-colors duration-150"
+          render={<Link href="/flashcards" onClick={closeMobile} />}
+        >
+          <Layers className="size-3.5! text-primary" strokeWidth={1.75} />
+          <span className="truncate">Flashcards</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>
