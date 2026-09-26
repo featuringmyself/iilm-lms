@@ -10,14 +10,15 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   Flame,
   ListChecks,
   Pencil,
   Play,
-  RotateCcw,
   Shuffle,
   Undo2,
 } from "lucide-react";
@@ -38,6 +39,7 @@ import {
   readFlashStreak,
   type FlashStreak,
 } from "@/lib/flashcards/streak";
+import { distillWhyThis } from "@/lib/flashcards/why";
 import { cn } from "@/lib/utils";
 
 type Rate = "known" | "learning";
@@ -175,6 +177,21 @@ function typeLabel(type?: string): string {
   return type.replaceAll("_", " ");
 }
 
+function filterLabel(filter: StudyFilter): string {
+  switch (filter) {
+    case "cram":
+      return "Cram";
+    case "A":
+      return "Priority A";
+    case "B":
+      return "Priority B";
+    case "C":
+      return "Priority C";
+    default:
+      return "Full bank";
+  }
+}
+
 interface FlashcardStudyProps {
   deck: FlashcardDeck;
 }
@@ -190,7 +207,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
     [deck, filter]
   );
   const [state, dispatch] = useReducer(studyReducer, activeCards, initState);
-  const touchStartX = useRef<number | null>(null);
   const titleId = useId();
 
   const counts = useMemo(() => {
@@ -212,6 +228,7 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
   const progress = total === 0 ? 0 : Math.round((mastered / total) * 100);
   const current = state.queue[state.index];
   const depthLeft = Math.min(2, Math.max(0, remaining - 1));
+  const immersive = phase === "study";
 
   useEffect(() => {
     posthog.capture("flashcard_deck_opened", {
@@ -220,6 +237,15 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
       card_count: deck.cards.length,
     });
   }, [deck.courseSlug, deck.unitSlug, deck.cards.length]);
+
+  useEffect(() => {
+    if (!immersive) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [immersive]);
 
   function startSession(nextFilter: StudyFilter = filter) {
     const cards = filterCards(deck, nextFilter);
@@ -245,7 +271,7 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
     const finishing =
       rate === "known" && state.queue.length === 1 && Boolean(current);
     setBurst(rate);
-    window.setTimeout(() => setBurst(null), 320);
+    window.setTimeout(() => setBurst(null), 340);
     dispatch({ type: "rate", rate });
     if (finishing) {
       const nextStreak = bumpFlashStreak();
@@ -274,6 +300,7 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
         if (event.key === "r" || event.key === "R") {
           dispatch({ type: "restart", cards: activeCards });
         }
+        if (event.key === "Escape") setPhase("lobby");
         return;
       }
 
@@ -293,6 +320,9 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
         case "S":
           dispatch({ type: "shuffle" });
           break;
+        case "Escape":
+          setPhase("lobby");
+          break;
         default:
           break;
       }
@@ -301,7 +331,6 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeCards, phase, state.done, state.flipped]);
-
 
   if (phase === "lobby") {
     return (
@@ -315,87 +344,143 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
     );
   }
 
-  if (state.done) {
-    return (
-      <SessionComplete
-        deck={deck}
-        total={total}
-        knownHits={state.knownHits}
-        learningHits={state.learningHits}
-        filter={filter}
-        counts={counts}
-        streak={streak}
-        onRestart={() => startSession(filter)}
-        onFullBank={() => startSession("all")}
-        onLobby={() => setPhase("lobby")}
-      />
-    );
-  }
+  const session = state.done ? (
+    <SessionComplete
+      total={total}
+      knownHits={state.knownHits}
+      learningHits={state.learningHits}
+      filter={filter}
+      counts={counts}
+      streak={streak}
+      onRestart={() => startSession(filter)}
+      onFullBank={() => startSession("all")}
+      onLobby={() => setPhase("lobby")}
+    />
+  ) : (
+    <StudySession
+      deck={deck}
+      filter={filter}
+      streak={streak}
+      burst={burst}
+      state={state}
+      current={current}
+      total={total}
+      mastered={mastered}
+      progress={progress}
+      depthLeft={depthLeft}
+      titleId={titleId}
+      onBack={() => setPhase("lobby")}
+      onFlip={() => dispatch({ type: "flip" })}
+      onRate={handleRate}
+      onShuffle={() => dispatch({ type: "shuffle" })}
+    />
+  );
 
+  return createPortal(session, document.body);
+}
+
+function StudySession({
+  deck,
+  filter,
+  streak,
+  burst,
+  state,
+  current,
+  total,
+  mastered,
+  progress,
+  depthLeft,
+  titleId,
+  onBack,
+  onFlip,
+  onRate,
+  onShuffle,
+}: {
+  deck: FlashcardDeck;
+  filter: StudyFilter;
+  streak: FlashStreak;
+  burst: "known" | "learning" | null;
+  state: StudyState;
+  current?: Flashcard;
+  total: number;
+  mastered: number;
+  progress: number;
+  depthLeft: number;
+  titleId: string;
+  onBack: () => void;
+  onFlip: () => void;
+  onRate: (rate: Rate) => void;
+  onShuffle: () => void;
+}) {
   const cardNumber = Math.min(mastered + 1, total);
+  const touchStartXRef = useRef<number | null>(null);
 
   return (
     <div
       className={cn(
-        "flash-immerse -mx-3 flex min-h-[calc(100svh-7.5rem)] flex-col transition-colors duration-500 sm:-mx-6 sm:min-h-[calc(100svh-8rem)]",
-        state.flipped ? "flash-immerse-check" : "flash-immerse-prompt",
+        "flash-stage fixed inset-0 z-[100] flex flex-col",
+        state.flipped && "is-check",
         burst === "known" && "flash-burst-known",
         burst === "learning" && "flash-burst-again"
       )}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
     >
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-5 sm:px-6 sm:pb-7">
-        <div className="flex items-center gap-3 pt-2 pb-4 text-[var(--flash-ink)]">
+      <div className="relative z-10 mx-auto flex h-full w-full max-w-lg flex-col px-5 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8">
+        <header className="flex items-center gap-3 pt-2 pb-3">
           <button
             type="button"
-            onClick={() => setPhase("lobby")}
-            className="inline-flex size-10 items-center justify-center rounded-full border-2 border-[var(--flash-ink)]/20 bg-[var(--flash-card)]/40 transition-transform active:scale-95"
+            onClick={onBack}
+            className="inline-flex size-10 items-center justify-center rounded-full border border-white/15 text-white/80 transition-colors hover:bg-white/5 hover:text-white"
             aria-label="Back to deck"
           >
             <ArrowLeft className="size-4" strokeWidth={2} />
           </button>
-          <div className="min-w-0 flex-1 text-center">
-            <p className="truncate text-[13px] font-semibold tracking-tight">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium tracking-tight text-white">
               {deck.unitLabel}
             </p>
-            <p className="text-[11px] opacity-70">{filterLabel(filter)}</p>
+            <p className="text-[11px] text-white/45">{filterLabel(filter)}</p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {streak.count > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--flash-ink)]/10 px-2 py-1 font-mono text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/8 px-2 py-1 font-mono text-[11px] font-semibold text-[var(--flash-yellow)]">
                 <Flame className="size-3.5" strokeWidth={2} />
                 {streak.count}
               </span>
             ) : null}
-            <span className="rounded-full bg-[var(--flash-ink)]/10 px-2.5 py-1 font-mono text-[12px] font-semibold tabular-nums">
-              {String(cardNumber).padStart(2, "0")}/
-              {String(total).padStart(2, "0")}
+            <span className="font-mono text-[13px] font-semibold tabular-nums text-white/70">
+              {cardNumber}{" "}
+              <span className="text-white/30">/</span> {total}
             </span>
           </div>
-        </div>
+        </header>
 
-        <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-[var(--flash-ink)]/15">
+        <div className="mb-5 h-[3px] overflow-hidden rounded-full bg-white/10">
           <div
-            className="flash-progress-bar h-full rounded-full bg-[var(--flash-ink)]"
+            className="flash-progress-bar h-full rounded-full bg-white"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <div className="relative flex flex-1 flex-col justify-center py-2">
+        <div className="relative flex flex-1 flex-col justify-center">
+          <div className="flash-rings" aria-hidden />
           <div
             key={state.animKey}
-            className="flash-card-enter relative"
+            className="flash-card-enter flash-slab relative"
             onTouchStart={(e) => {
-              touchStartX.current = e.changedTouches[0]?.clientX ?? null;
+              touchStartXRef.current = e.changedTouches[0]?.clientX ?? null;
             }}
             onTouchEnd={(e) => {
-              const start = touchStartX.current;
+              const start = touchStartXRef.current;
               const end = e.changedTouches[0]?.clientX;
-              touchStartX.current = null;
+              touchStartXRef.current = null;
               if (start == null || end == null || !state.flipped) return;
               const delta = end - start;
               if (Math.abs(delta) < 64) return;
-              if (delta < 0) handleRate("known");
-              else handleRate("learning");
+              if (delta < 0) onRate("known");
+              else onRate("learning");
             }}
           >
             {depthLeft >= 2 ? (
@@ -409,120 +494,109 @@ export function FlashcardStudy({ deck }: FlashcardStudyProps) {
               type="button"
               className={cn(
                 "flash-scene group relative z-10 block w-full cursor-pointer text-left",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--flash-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--flash-stage)]"
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070708]"
               )}
               onClick={() => {
-                if (!state.flipped) dispatch({ type: "flip" });
+                if (!state.flipped) onFlip();
               }}
               aria-labelledby={titleId}
               aria-pressed={state.flipped}
             >
-              <div className={cn("flash-card", state.flipped && "is-flipped")}>
-                <div className="flash-face flash-face-front">
-                  <CardMeta card={current} side="prompt" />
-                  <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-1">
-                    <p
-                      id={titleId}
-                      className="flash-face-text mx-auto max-w-prose text-balance text-center text-[22px] font-semibold leading-tight tracking-tight text-zinc-900 sm:text-[26px]"
-                    >
-                      {current?.front && looksLikeFormula(current.front) ? (
-                        <SmartMathText text={current.front} formulaDisplay />
-                      ) : (
-                        current?.front
-                      )}
-                    </p>
-                    {current?.diagram ? (
-                      <p className="mx-auto mt-6 inline-flex items-center gap-1.5 rounded-full bg-zinc-900/5 px-3 py-1.5 text-[11px] font-medium text-zinc-600">
-                        <Pencil className="size-3" strokeWidth={2} />
-                        Draw this
+              <div
+                key={state.flipped ? "check" : "prompt"}
+                className={cn(
+                  "flash-slab-card",
+                  state.flipped ? "is-check" : "is-prompt"
+                )}
+              >
+                {!state.flipped ? (
+                  <>
+                    <CardMeta card={current} side="prompt" />
+                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-1 py-3">
+                      <p
+                        id={titleId}
+                        className="flash-face-text mx-auto max-w-[22ch] text-balance text-center text-[23px] font-semibold leading-[1.2] tracking-tight text-[#111] sm:text-[27px]"
+                      >
+                        {current?.front && looksLikeFormula(current.front) ? (
+                          <SmartMathText text={current.front} formulaDisplay />
+                        ) : (
+                          current?.front
+                        )}
                       </p>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flash-face flash-face-back">
-                  <CardMeta card={current} side="answer" />
-                  <div
-                    className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain"
-                    onTouchStart={(e) => e.stopPropagation()}
-                    onTouchMove={(e) => e.stopPropagation()}
-                  >
-                    <CardAnswer card={current} />
-                  </div>
-                </div>
+                      {current?.diagram ? (
+                        <p className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-black/8 px-3 py-1.5 text-[11px] font-semibold text-black/65">
+                          <Pencil className="size-3" strokeWidth={2} />
+                          Draw this
+                        </p>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <CardMeta card={current} side="answer" />
+                    <div
+                      className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
+                    >
+                      <CardAnswer card={current} />
+                    </div>
+                  </>
+                )}
               </div>
             </button>
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="space-y-3 pt-5">
+          {state.flipped && current ? <WhyTip card={current} /> : null}
+
           {!state.flipped ? (
             <button
               type="button"
-              onClick={() => dispatch({ type: "flip" })}
-              className="flash-flip-cta mx-auto flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full border-2 border-[var(--flash-ink)] bg-transparent text-[15px] font-semibold tracking-wide text-[var(--flash-ink)] transition-transform active:scale-[0.98]"
+              onClick={onFlip}
+              className="mx-auto flex h-12 w-full max-w-[220px] items-center justify-center gap-2 rounded-full border border-white/25 text-[14px] font-semibold tracking-wide text-white transition-colors hover:bg-white/5 active:scale-[0.98]"
             >
               flip
-              <span aria-hidden>→</span>
+              <span aria-hidden className="opacity-70">
+                →
+              </span>
             </button>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 px-1">
               <button
                 type="button"
-                onClick={() => handleRate("learning")}
-                className="flash-rate-forgot flex h-16 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] border-2 border-[var(--flash-ink)]/25 bg-[var(--flash-card)]/50 text-[var(--flash-ink)] transition-transform active:scale-[0.97]"
+                onClick={() => onRate("learning")}
+                className="flex items-center justify-start gap-2 rounded-2xl px-2 py-3 text-[17px] font-semibold text-[var(--flash-forgot)] transition-opacity hover:opacity-90 active:scale-[0.98]"
               >
-                <span className="inline-flex items-center gap-1.5 text-[15px] font-semibold">
-                  <Undo2 className="size-4" strokeWidth={2} />
-                  Forgot
-                </span>
-                <span className="text-[11px] opacity-60">comes back</span>
+                <Undo2 className="size-4" strokeWidth={2.25} />
+                Forgot
               </button>
               <button
                 type="button"
-                onClick={() => handleRate("known")}
-                className="flash-rate-know flex h-16 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] bg-[var(--flash-ink)] text-[var(--flash-stage)] transition-transform active:scale-[0.97]"
+                onClick={() => onRate("known")}
+                className="flex items-center justify-end gap-2 rounded-2xl px-2 py-3 text-[17px] font-semibold text-[var(--flash-know)] transition-opacity hover:opacity-90 active:scale-[0.98]"
               >
-                <span className="inline-flex items-center gap-1.5 text-[15px] font-semibold">
-                  <Check className="size-4" strokeWidth={2.5} />
-                  Know it
-                </span>
-                <span className="text-[11px] opacity-70">locked</span>
+                Know it
+                <Check className="size-4" strokeWidth={2.5} />
               </button>
             </div>
           )}
-          <div className="flex items-center justify-center gap-4 text-[var(--flash-ink)]/55">
+
+          <div className="flex items-center justify-center">
             <button
               type="button"
               aria-label="Shuffle"
-              onClick={() => dispatch({ type: "shuffle" })}
-              className="rounded-full p-2 transition-colors hover:text-[var(--flash-ink)]"
+              onClick={onShuffle}
+              className="rounded-full p-2 text-white/30 transition-colors hover:text-white/70"
             >
               <Shuffle className="size-4" strokeWidth={2} />
             </button>
-            <p className="font-mono text-[10px] tracking-wide uppercase">
-              {current?.id}
-              {current?.cardType ? ` · ${typeLabel(current.cardType)}` : ""}
-            </p>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function filterLabel(filter: StudyFilter): string {
-  switch (filter) {
-    case "cram":
-      return "Cram set";
-    case "A":
-      return "Priority A";
-    case "B":
-      return "Priority B";
-    case "C":
-      return "Priority C";
-    default:
-      return "Full bank";
-  }
 }
 
 function DeckLobby({
@@ -538,162 +612,148 @@ function DeckLobby({
   streak: FlashStreak;
   onStart: (filter: StudyFilter) => void;
 }) {
-  const [showFormulas, setShowFormulas] = useState(false);
-  const priorityTotal = counts.A + counts.B + counts.C || 1;
+  const [showNotes, setShowNotes] = useState(false);
+  const defaultFilter: StudyFilter = hasCram ? "cram" : counts.A > 0 ? "A" : "all";
+  const defaultCount = counts[defaultFilter];
+  const hasNotes =
+    (deck.diagramSet?.length ?? 0) > 0 || (deck.formulaSheet?.length ?? 0) > 0;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 sm:space-y-8">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <Link
-            href="/flashcards"
-            className="mb-3 inline-flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-3.5" strokeWidth={1.75} />
-            All decks
-          </Link>
-          <p className="text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-            {deck.unitLabel}
-          </p>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-4xl">
-            {deck.courseName}
-          </h1>
-          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
-            {deck.courseCode ?? deck.title}
-          </p>
-        </div>
+    <div className="flex min-h-[calc(100svh-8.5rem)] w-full flex-col items-center justify-center py-6">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-8">
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/flashcards"
+          className="inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-label="All decks"
+        >
+          <ArrowLeft className="size-4" strokeWidth={2} />
+        </Link>
         {streak.count > 0 ? (
-          <div className="shrink-0 rounded-2xl border border-border bg-card px-3 py-2.5 text-center">
-            <Flame className="mx-auto size-4 text-orange-500" strokeWidth={2} />
-            <p className="mt-1 text-xl font-semibold tabular-nums">{streak.count}</p>
-            <p className="font-mono text-[10px] text-muted-foreground">day streak</p>
-          </div>
-        ) : null}
+          <span className="inline-flex items-center gap-1.5 font-mono text-[14px] font-semibold tabular-nums text-orange-500">
+            <Flame className="size-4" strokeWidth={2.25} />
+            {streak.count}
+          </span>
+        ) : (
+          <span className="size-10" aria-hidden />
+        )}
       </div>
 
-      <section className="flash-lobby-hero relative overflow-hidden rounded-[1.75rem] bg-[oklch(0.88_0.14_85)] p-6 text-zinc-900 sm:p-8 dark:bg-[oklch(0.82_0.14_85)]">
-        <div className="relative space-y-5">
-          <p className="text-[12px] font-semibold tracking-[0.16em] uppercase opacity-70">
-            Commit to a set
-          </p>
-          <h2 className="max-w-md text-[26px] font-semibold leading-tight tracking-tight sm:text-3xl">
-            One short session beats a panic re-read.
-          </h2>
-          <p className="max-w-md text-[14px] leading-relaxed opacity-75">
-            Think → flip → rate. Misses loop back. Wins leave the queue. That&apos;s
-            how memory sticks.
-          </p>
-          <div className="flex flex-col gap-2.5 sm:flex-row">
-            {hasCram ? (
-              <button
-                type="button"
-                onClick={() => onStart("cram")}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-zinc-900 px-5 text-[14px] font-semibold text-[oklch(0.88_0.14_85)] transition-transform active:scale-[0.98]"
-              >
-                <Play className="size-4" strokeWidth={2} />
-                Start cram · {counts.cram}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => onStart("A")}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-zinc-900/20 px-5 text-[14px] font-semibold transition-transform active:scale-[0.98]"
-            >
-              Priority A · {counts.A}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-          Mix
-        </h3>
-        <div className="flex h-3 overflow-hidden rounded-full bg-muted">
-          <div className="bg-zinc-900 dark:bg-zinc-100" style={{ width: `${(counts.A / priorityTotal) * 100}%` }} />
-          <div className="bg-zinc-900/45 dark:bg-zinc-100/45" style={{ width: `${(counts.B / priorityTotal) * 100}%` }} />
-          <div className="bg-zinc-900/20 dark:bg-zinc-100/20" style={{ width: `${(counts.C / priorityTotal) * 100}%` }} />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {(
-            [
-              ["A", "Must prep", counts.A],
-              ["B", "Next up", counts.B],
-              ["C", "Quick", counts.C],
-            ] as const
-          ).map(([key, label, value]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onStart(key)}
-              className="rounded-2xl border border-border bg-card px-3 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
-            >
-              <p className="font-mono text-[10px] text-muted-foreground">P{key}</p>
-              <p className="mt-0.5 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
-              <p className="text-[11px] text-muted-foreground">{label}</p>
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => onStart("all")}
-          className="w-full rounded-full border border-border py-3 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+      <div className="text-center">
+        <p className="text-[12px] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+          {deck.unitLabel}
+        </p>
+        <h1
+          className="mt-2 text-[36px] leading-none tracking-tight text-foreground sm:text-[40px]"
+          style={{
+            fontFamily: "var(--font-flash-serif), ui-serif, Georgia, serif",
+          }}
         >
-          Full bank · {counts.all}
-        </button>
-      </section>
+          {deck.courseName}
+        </h1>
+      </div>
 
-      {deck.diagramSet && deck.diagramSet.length > 0 ? (
-        <section className="space-y-2.5">
-          <h3 className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-            <Pencil className="size-3.5" strokeWidth={1.75} />
-            Draw cold
-          </h3>
-          <ul className="grid gap-1.5 sm:grid-cols-2">
-            {deck.diagramSet.map((item) => (
-              <li
-                key={item}
-                className="rounded-xl border border-border bg-card px-3 py-2.5 text-[12px] text-foreground"
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => onStart(defaultFilter)}
+        className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[var(--flash-yellow)] text-[16px] font-bold text-[#111] shadow-[0_8px_0_0_#c4b020] transition-transform active:translate-y-1 active:shadow-none"
+      >
+        <Play className="size-4 fill-current" strokeWidth={2} />
+        Start
+        <span className="font-mono text-[13px] font-semibold opacity-60">
+          {defaultCount}
+        </span>
+      </button>
 
-      {deck.formulaSheet && deck.formulaSheet.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        {(
+          [
+            ...(hasCram
+              ? [{ key: "cram" as const, label: "Cram", value: counts.cram }]
+              : []),
+            { key: "A" as const, label: "A", value: counts.A },
+            { key: "B" as const, label: "B", value: counts.B },
+            { key: "C" as const, label: "C", value: counts.C },
+            { key: "all" as const, label: "All", value: counts.all },
+          ] as const
+        ).map(({ key, label, value }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onStart(key)}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-colors",
+              key === defaultFilter
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {label}
+            <span className="font-mono tabular-nums opacity-60">{value}</span>
+          </button>
+        ))}
+      </div>
+
+      {hasNotes ? (
+        <div className="border-t border-border pt-4">
           <button
             type="button"
-            onClick={() => setShowFormulas((v) => !v)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-muted/40"
+            onClick={() => setShowNotes((v) => !v)}
+            aria-expanded={showNotes}
+            className="mx-auto flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-foreground">
-              <ListChecks className="size-4 text-muted-foreground" strokeWidth={1.75} />
-              Formula sheet
-            </span>
-            <span className="font-mono text-[11px] text-muted-foreground">
-              {showFormulas ? "Hide" : "Peek"}
-            </span>
+            <ListChecks className="size-3.5" strokeWidth={1.75} />
+            {showNotes ? "Hide notes" : "Notes"}
+            <ChevronDown
+              className={cn(
+                "size-3.5 transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.25,1)]",
+                showNotes && "rotate-180"
+              )}
+              strokeWidth={2}
+              aria-hidden
+            />
           </button>
-          {showFormulas ? (
-            <ul className="space-y-2 border-t border-border px-4 py-3">
-              {deck.formulaSheet.map((formula) => (
-                <li key={formula}>
-                  <FormulaBlock expr={formula} />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
+          <div
+            className={cn(
+              "flash-notes-panel",
+              showNotes && "is-open"
+            )}
+            aria-hidden={!showNotes}
+          >
+            <div className="flash-notes-panel-inner">
+              <div className="space-y-4 pt-4">
+                {deck.diagramSet && deck.diagramSet.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {deck.diagramSet.map((item) => (
+                      <li
+                        key={item}
+                        className="rounded-xl bg-muted/50 px-3 py-2 text-[12px] text-foreground"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {deck.formulaSheet && deck.formulaSheet.length > 0 ? (
+                  <ul className="space-y-2">
+                    {deck.formulaSheet.map((formula) => (
+                      <li key={formula}>
+                        <FormulaBlock expr={formula} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
+      </div>
     </div>
   );
 }
 
 function SessionComplete({
-  deck,
   total,
   knownHits,
   learningHits,
@@ -704,7 +764,6 @@ function SessionComplete({
   onFullBank,
   onLobby,
 }: {
-  deck: FlashcardDeck;
   total: number;
   knownHits: number;
   learningHits: number;
@@ -716,39 +775,43 @@ function SessionComplete({
   onLobby: () => void;
 }) {
   return (
-    <div className="flash-complete-stage -mx-3 flex min-h-[calc(100svh-7.5rem)] flex-col items-center justify-center px-4 py-10 sm:-mx-6 sm:min-h-[calc(100svh-8rem)]">
-      <div className="flash-complete relative w-full max-w-md overflow-hidden rounded-[1.75rem] bg-white px-6 py-10 text-center text-zinc-900 shadow-xl sm:px-10 sm:py-12">
-        <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-[oklch(0.72_0.19_145)] text-white shadow-lg">
-          <Check className="size-8" strokeWidth={2.5} />
+    <div className="flash-stage fixed inset-0 z-[100] flex flex-col items-center justify-center px-5">
+      <div className="flash-complete relative w-full max-w-sm overflow-hidden rounded-[1.75rem] bg-white px-7 py-10 text-center text-[#111] shadow-2xl">
+        <div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-[var(--flash-lime)]">
+          <Check className="size-8 text-[#111]" strokeWidth={2.75} />
         </div>
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[oklch(0.55_0.15_145)] uppercase">
-          Good job
-        </p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Queue cleared
+        <h2
+          className="text-[36px] leading-none tracking-tight"
+          style={{
+            fontFamily: "var(--font-flash-serif), ui-serif, Georgia, serif",
+          }}
+        >
+          Done
         </h2>
-        <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-zinc-600">
-          {total} cards from {deck.unitLabel}. Real retrieval — not passive scrolling.
-        </p>
-        <div className="mx-auto mt-8 grid max-w-xs grid-cols-3 gap-2">
-          <StatPill label="Know" value={knownHits} />
-          <StatPill label="Forgot" value={learningHits} />
-          <StatPill label="Streak" value={streak.count} />
+        <div className="mx-auto mt-6 flex max-w-[220px] items-center justify-between gap-3 font-mono text-[13px] tabular-nums text-zinc-500">
+          <span>{total}</span>
+          <span className="text-[var(--flash-know)]">{knownHits}✓</span>
+          <span className="text-[var(--flash-forgot)]">{learningHits}↩</span>
+          {streak.count > 0 ? (
+            <span className="inline-flex items-center gap-0.5 text-orange-500">
+              <Flame className="size-3.5" strokeWidth={2} />
+              {streak.count}
+            </span>
+          ) : null}
         </div>
         <div className="mt-8 flex flex-col gap-2.5">
           <button
             type="button"
             onClick={onRestart}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-zinc-900 text-[14px] font-semibold text-white transition-transform active:scale-[0.98]"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#111] text-[14px] font-semibold text-white transition-transform active:scale-[0.98]"
           >
-            <RotateCcw className="size-4" strokeWidth={2} />
-            Run it back
+            Continue
           </button>
           {filter !== "all" ? (
             <button
               type="button"
               onClick={onFullBank}
-              className="inline-flex h-12 items-center justify-center rounded-full border-2 border-zinc-900/15 text-[14px] font-semibold text-zinc-700"
+              className="inline-flex h-11 items-center justify-center text-[13px] font-medium text-zinc-500"
             >
               Full bank · {counts.all}
             </button>
@@ -756,9 +819,9 @@ function SessionComplete({
             <button
               type="button"
               onClick={onLobby}
-              className="inline-flex h-12 items-center justify-center rounded-full border-2 border-zinc-900/15 text-[14px] font-semibold text-zinc-700"
+              className="inline-flex h-11 items-center justify-center text-[13px] font-medium text-zinc-500"
             >
-              Deck home
+              Back
             </button>
           )}
         </div>
@@ -775,22 +838,21 @@ function CardMeta({
   side: "prompt" | "answer";
 }) {
   return (
-    <div className="mb-6 flex items-center justify-between gap-2">
+    <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-1.5">
         {card?.priority ? (
-          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-zinc-900 px-2 font-mono text-[11px] font-bold text-white">
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-black px-2 font-mono text-[11px] font-bold text-white">
             {card.priority}
           </span>
         ) : null}
         {card?.cardType ? (
-          <span className="rounded-full bg-zinc-900/5 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-zinc-500 uppercase">
+          <span className="rounded-full bg-black/8 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-black/45 uppercase">
             {typeLabel(card.cardType)}
           </span>
         ) : null}
       </div>
-      <span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-zinc-400 uppercase">
+      <span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-black/30 uppercase">
         {side === "prompt" ? "Prompt" : "Check"}
-        {card?.id ? ` · ${card.id}` : ""}
       </span>
     </div>
   );
@@ -801,94 +863,145 @@ function CardAnswer({ card }: { card?: Flashcard }) {
   const answers = asLines(card.answer);
   const patterns = asLines(card.answerPattern);
   const mustInclude = card.mustInclude ?? [];
+  const hasStructured =
+    answers.length > 0 || patterns.length > 0 || mustInclude.length > 0;
 
   return (
-    <div className="min-w-0 w-full space-y-3.5 overflow-x-auto overscroll-x-contain">
-      {answers.length > 0 ? (
-        <div className="space-y-2">
-          {answers.map((line) =>
-            looksLikeFormula(line) ? (
-              <FormulaBlock key={line} expr={line.replace(/\.$/, "")} />
-            ) : (
-              <p
-                key={line}
-                className="text-balance text-[16px] leading-relaxed text-zinc-900 sm:text-[17px]"
-              >
-                <SmartMathText text={line} />
-              </p>
-            )
-          )}
-        </div>
-      ) : null}
+    <div className="flex min-h-full min-w-0 w-full flex-col justify-center py-3">
+      <div className="mx-auto w-full max-w-[34rem] space-y-7">
+        {answers.length > 0 ? (
+          <div className="space-y-4">
+            {answers.map((line) =>
+              looksLikeFormula(line) ? (
+                <FormulaBlock
+                  key={line}
+                  expr={line.replace(/\.$/, "")}
+                  tone="onColor"
+                />
+              ) : (
+                <p
+                  key={line}
+                  className="text-pretty text-[18px] font-medium leading-[1.55] tracking-[-0.01em] text-[#111]"
+                >
+                  <SmartMathText text={line} />
+                </p>
+              )
+            )}
+          </div>
+        ) : null}
 
-      {patterns.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-zinc-400 uppercase">
-            Pattern
-          </p>
-          {patterns.map((line) => (
-            <FormulaBlock key={line} expr={line.replace(/\.$/, "")} />
-          ))}
-        </div>
-      ) : null}
+        {patterns.length > 0 ? (
+          <section className="space-y-3.5">
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-black/35 uppercase">
+              Pattern
+            </p>
+            <div className="space-y-3">
+              {patterns.map((line) => {
+                const cleaned = line.replace(/\.$/, "");
+                return looksLikeFormula(cleaned) ? (
+                  <FormulaBlock key={line} expr={cleaned} tone="onColor" />
+                ) : (
+                  <p
+                    key={line}
+                    className="rounded-2xl bg-black/[0.07] px-5 py-4 text-pretty text-[16px] font-medium leading-[1.55] tracking-[-0.01em] text-[#111] sm:text-[17px]"
+                  >
+                    <SmartMathText text={cleaned} />
+                  </p>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
-      {mustInclude.length > 0 ? (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-zinc-400 uppercase">
-            Must include
-          </p>
-          <ul className="space-y-2">
-            {mustInclude.map((item, i) => (
-              <li key={item} className="flex gap-2.5">
-                <span className="mt-1 font-mono text-[10px] text-zinc-400 tabular-nums">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div className="min-w-0 flex-1 text-[13px] leading-snug text-zinc-800">
-                  {looksLikeFormula(item) ? (
-                    <FormulaBlock expr={item} />
-                  ) : (
+        {mustInclude.length > 0 ? (
+          <section className="space-y-4">
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-black/35 uppercase">
+              Must include
+            </p>
+            <ol className="space-y-0 divide-y divide-black/10">
+              {mustInclude.map((item, i) => (
+                <li
+                  key={item}
+                  className="flex gap-4 py-3.5 first:pt-0 last:pb-0"
+                >
+                  <span className="mt-[0.2em] w-6 shrink-0 font-mono text-[12px] font-medium text-black/30 tabular-nums">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="min-w-0 flex-1 text-[16px] leading-[1.55] tracking-[-0.01em] text-[#111] sm:text-[17px]">
                     <SmartMathText text={item} />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
 
-      {!answers.length && !patterns.length && !mustInclude.length ? (
-        looksLikeFormula(card.back) ? (
-          <FormulaBlock expr={card.back.replace(/\.$/, "")} />
-        ) : (
-          <p className="text-balance text-[16px] leading-relaxed text-zinc-900 sm:text-[17px]">
-            <SmartMathText text={card.back} />
+        {!hasStructured ? (
+          looksLikeFormula(card.back) ? (
+            <FormulaBlock expr={card.back.replace(/\.$/, "")} tone="onColor" />
+          ) : (
+            <p className="text-pretty text-[18px] font-medium leading-[1.55] tracking-[-0.01em] text-[#111]">
+              <SmartMathText text={card.back} />
+            </p>
+          )
+        ) : null}
+
+        {card.diagramRequired ? (
+          <p className="rounded-2xl border border-dashed border-black/15 bg-black/[0.04] px-4 py-3.5 text-[13px] leading-relaxed text-black/55">
+            <span className="font-semibold text-[#111]">Draw · </span>
+            {card.diagramRequired}
           </p>
-        )
-      ) : null}
-
-      {card.diagramRequired ? (
-        <p className="rounded-xl border border-dashed border-zinc-300 px-3 py-2.5 text-[12px] leading-relaxed text-zinc-600">
-          <span className="font-semibold text-zinc-900">Draw · </span>
-          {card.diagramRequired}
-        </p>
-      ) : null}
-
-      {card.priorityNote ? (
-        <p className="text-[12px] leading-relaxed text-zinc-500">{card.priorityNote}</p>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function StatPill({ label, value }: { label: string; value: number }) {
+/** Duolingo-style tip: appears under the card after flip — never during recall. */
+function WhyTip({ card }: { card: Flashcard }) {
+  const why = distillWhyThis(card);
+  if (!why) return null;
+  if (!why.chips.length && !why.line && !why.note) return null;
+
   return (
-    <div className="rounded-2xl bg-zinc-100 px-3 py-3 text-left">
-      <p className="text-[10px] font-semibold tracking-[0.12em] text-zinc-500 uppercase">
-        {label}
-      </p>
-      <p className="mt-0.5 text-2xl font-semibold tabular-nums tracking-tight text-zinc-900">
-        {value}
-      </p>
+    <div
+      className="flash-why-tip mx-auto w-full max-w-lg px-1"
+      role="note"
+    >
+      <div className="rounded-2xl bg-white/[0.07] px-4 py-3.5 ring-1 ring-white/10">
+        {why.chips.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {why.chips.map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full bg-[var(--flash-yellow)]/15 px-2.5 py-1 text-[11px] font-bold tracking-wide text-[var(--flash-yellow)]"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {why.line ? (
+          <p
+            className={cn(
+              "text-[13px] leading-snug text-white/70",
+              why.chips.length > 0 && "mt-2"
+            )}
+          >
+            {why.line}
+          </p>
+        ) : null}
+        {why.note ? (
+          <p
+            className={cn(
+              "text-[12px] leading-snug text-white/40",
+              (why.chips.length > 0 || why.line) && "mt-1.5"
+            )}
+          >
+            {why.note}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

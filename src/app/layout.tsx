@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PwaProvider } from "@/components/pwa-provider";
+
+const flashSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-flash-serif",
+  display: "swap",
+});
 
 const APP_NAME = "IILM LMS";
 const APP_DESCRIPTION =
@@ -42,7 +51,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={cn(
         "h-full antialiased",
         GeistSans.variable,
-        GeistMono.variable
+        GeistMono.variable,
+        flashSerif.variable
       )}
     >
       <body className="min-h-svh bg-background font-sans text-foreground">

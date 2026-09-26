@@ -102,6 +102,11 @@ export function looksLikeFormula(text: string): boolean {
     return false;
   }
 
+  const tokens = t.split(/\s+/).filter(Boolean);
+  const longEnglish = tokens.filter((w) => /^[A-Za-z]{4,}$/.test(w));
+  // Mixed checklist lines: "ψ is probability amplitude" — not a display formula.
+  if (longEnglish.length >= 2 && tokens.length >= 3) return false;
+
   // English-heavy lines are prose (maybe with inline math), not a display formula.
   // Fixes answers like "Ground: n=1; first excited: n=2; …" being KaTeX'd + clipped.
   const proseWords =
@@ -349,45 +354,65 @@ export function formulaToLatex(raw: string): string {
 }
 
 /**
+ * Inline math tokens embedded in checklist / prose lines.
+ * e.g. ψ, |ψ|², E_n, ψ_n, ℏ
+ */
+const INLINE_MATH_TOKEN =
+  /\|[^|\s]+\|(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+|\^[0-9]+|\^{[^}]+})?|ΔE|[EVψΨλφΦ]\s*[₀-₉](?:\s*[−–—-]\s*[EVψΨλφΦ]\s*[₀-₉])?|[ψΨλφΦΔαβνπℏ](?:_[A-Za-z0-9]+)?(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?|(?:E|V|K|P|n|m|L|h|ħ)_\{?[A-Za-z0-9]+\}?(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?|\bn\s*=\s*\d+\b/g;
+
+function splitInlineMath(
+  text: string
+): Array<{ type: "text" | "formula"; value: string }> {
+  const out: Array<{ type: "text" | "formula"; value: string }> = [];
+  let last = 0;
+  for (const match of text.matchAll(INLINE_MATH_TOKEN)) {
+    const start = match.index ?? 0;
+    if (start > last) {
+      out.push({ type: "text", value: text.slice(last, start) });
+    }
+    out.push({ type: "formula", value: match[0]! });
+    last = start + match[0]!.length;
+  }
+  if (last < text.length) {
+    out.push({ type: "text", value: text.slice(last) });
+  }
+  return out.length > 0 ? out : [{ type: "text", value: text }];
+}
+
+/**
  * For mixed prose + formula, split and mark formula chunks.
  */
 export function splitProseAndFormulas(
   text: string
 ): Array<{ type: "text" | "formula"; value: string }> {
-  const parts = text.split(/(\s*[·→]\s*)/);
-  const out: Array<{ type: "text" | "formula"; value: string }> = [];
+  const trimmed = text.trim();
+  if (!trimmed) return [{ type: "text", value: text }];
 
-  for (const part of parts) {
-    if (!part) continue;
-    if (/^\s*[·→]\s*$/.test(part)) {
-      out.push({ type: "text", value: part });
-      continue;
-    }
-    const trimmed = part.trim();
-    const withoutLabel = trimmed.replace(
-      /^(Cover|Use|Given|Answer|Formula)\s*:\s*/i,
-      ""
-    );
-    if (looksLikeFormula(withoutLabel) && withoutLabel.length < 120) {
-      if (withoutLabel !== trimmed) {
-        const label = trimmed.slice(0, trimmed.length - withoutLabel.length);
-        if (label) out.push({ type: "text", value: label });
+  // Pure display formula — no prose mix.
+  if (looksLikeFormula(trimmed)) {
+    return [{ type: "formula", value: trimmed.replace(/\.$/, "") }];
+  }
+
+  // Arrow / middle-dot chains: "ψ → |ψ|² → normalization"
+  if (/[·→]/.test(trimmed)) {
+    const parts = trimmed.split(/(\s*[·→]\s*)/);
+    const out: Array<{ type: "text" | "formula"; value: string }> = [];
+    for (const part of parts) {
+      if (!part) continue;
+      if (/^\s*[·→]\s*$/.test(part)) {
+        out.push({ type: "text", value: part });
+        continue;
       }
-      out.push({ type: "formula", value: withoutLabel });
-    } else if (
-      looksLikeFormula(trimmed) &&
-      !/\s{2,}/.test(trimmed) &&
-      trimmed.split(" ").length <= 12
-    ) {
-      out.push({ type: "formula", value: trimmed });
-    } else {
-      out.push({ type: "text", value: part });
+      out.push(...splitProseAndFormulas(part));
     }
+    return out;
   }
 
-  if (out.every((p) => p.type === "text") && looksLikeFormula(text)) {
-    return [{ type: "formula", value: text.trim().replace(/\.$/, "") }];
+  // Checklist / sentence with embedded symbols.
+  const inline = splitInlineMath(trimmed);
+  if (inline.some((p) => p.type === "formula")) {
+    return inline;
   }
 
-  return out;
+  return [{ type: "text", value: text }];
 }

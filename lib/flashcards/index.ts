@@ -19,3 +19,4 @@ export {
   readFlashStreak,
   type FlashStreak,
 } from "./streak";
+export { distillWhyThis, type WhyThis } from "./why";

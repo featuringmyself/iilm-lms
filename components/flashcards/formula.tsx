@@ -52,7 +52,7 @@ export function Formula({ expr, display = false, className }: FormulaProps) {
   const math = (
     <span
       className={cn(
-        "flash-formula text-foreground",
+        "flash-formula",
         display && "block w-max max-w-none",
         className
       )}
@@ -110,14 +110,14 @@ export function SmartMathText({
   }
 
   return (
-    <span className={cn("break-words", className)}>
+    <span className={cn("break-words [word-spacing:0.02em]", className)}>
       {parts.map((part, i) =>
         part.type === "formula" ? (
           <Formula
             key={`${part.value}-${i}`}
             expr={part.value}
             display={false}
-            className="mx-0.5 inline-block align-middle"
+            className="mx-[0.12em] inline-block align-baseline"
           />
         ) : (
           <span key={`${part.value}-${i}`}>{part.value}</span>
@@ -127,19 +127,38 @@ export function SmartMathText({
   );
 }
 
+/** Standalone display formula — used for pure equations only. */
 export function FormulaBlock({
   expr,
   className,
+  tone = "default",
 }: {
   expr: string;
   className?: string;
+  tone?: "default" | "onColor";
 }) {
+  const shell = cn(
+    "min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-2xl px-5 py-4",
+    tone === "onColor"
+      ? "bg-black/[0.07]"
+      : "border border-border bg-muted/40",
+    className
+  );
+
+  // Never KaTeX prose patterns — math mode eats spaces and clips.
+  if (!looksLikeFormula(expr)) {
+    return (
+      <div className={shell}>
+        <p className="text-pretty text-[16px] font-medium leading-[1.55] tracking-[-0.01em] text-inherit sm:text-[17px]">
+          <SmartMathText text={expr} />
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
-      className={cn(
-        "min-w-0 max-w-full overflow-x-auto overscroll-x-contain rounded-lg border border-border bg-muted/40 px-3 py-2.5",
-        className
-      )}
+      className={shell}
       onTouchStart={stopScrollGesture}
       onTouchMove={stopScrollGesture}
       onWheel={stopScrollGesture}

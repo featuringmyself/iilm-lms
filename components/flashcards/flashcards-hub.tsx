@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  ArrowUpRight,
   Atom,
   BookOpen,
   Brain,
@@ -19,11 +18,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import posthog from "posthog-js";
 
-import { getCourseTheme } from "@/lib/course-themes";
 import {
   flashcardDeckHref,
   getReadyFlashcardDecks,
-  type FlashcardDeck,
   type FlashcardSubject,
 } from "@/lib/flashcards";
 import {
@@ -42,6 +39,17 @@ const subjectIcons: Record<string, LucideIcon> = {
   "linux-lab": Terminal,
 };
 
+/** Short labels for the subject strip — Duo keeps chrome tiny. */
+const subjectShort: Record<string, string> = {
+  "quantum-physics": "Physics",
+  "applied-calculus": "Calc",
+  "c-programming": "C",
+  "artificial-intelligence": "AI",
+  "comupational-design-and-thinking": "Design",
+  "entrepreneurial-mindset": "Startup",
+  "linux-lab": "Linux",
+};
+
 interface FlashcardsHubProps {
   subjects: FlashcardSubject[];
   initialCourseSlug?: string;
@@ -55,11 +63,6 @@ export function FlashcardsHub({
   const featured = readyDecks[0];
   const [streak] = useState<FlashStreak>(() => readFlashStreak());
 
-  const cardCount = useMemo(
-    () => readyDecks.reduce((sum, d) => sum + d.cards.length, 0),
-    [readyDecks]
-  );
-
   const [activeCourse, setActiveCourse] = useState(() =>
     initialCourseSlug &&
     subjects.some((s) => s.courseSlug === initialCourseSlug)
@@ -72,287 +75,191 @@ export function FlashcardsHub({
 
   if (!subject) {
     return (
-      <div className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-[13px] text-muted-foreground">
-        No flashcard decks yet.
+      <div className="py-16 text-center text-[13px] text-muted-foreground">
+        No decks yet.
       </div>
     );
   }
 
-  const theme = getCourseTheme(subject.courseSlug);
-  const Icon = subjectIcons[subject.courseSlug] ?? theme.icon ?? BookOpen;
+  const current =
+    subject.units.find((u) => u.ready && u.cards.length > 0) ?? null;
+  const startCount =
+    current?.minimumExamSet?.length ??
+    current?.cards.filter((c) => c.priority === "A").length ??
+    current?.cards.length ??
+    0;
 
   return (
-    <div className="space-y-7 sm:space-y-9">
-      <header className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-            Study
-          </p>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-4xl">
-            Flashcards
-          </h1>
-          <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted-foreground">
-            Short active-recall sessions. Misses loop back. Wins leave the queue.
-          </p>
-        </div>
+    <div className="mx-auto flex w-full max-w-md flex-col gap-8 pb-8">
+      {/* Status — Duo top bar energy */}
+      <div className="flex h-10 items-center justify-between">
+        <span
+          className="text-[22px] leading-none tracking-tight text-foreground"
+          style={{
+            fontFamily: "var(--font-flash-serif), ui-serif, Georgia, serif",
+          }}
+        >
+          Flashcards
+        </span>
         {streak.count > 0 ? (
-          <div className="shrink-0 rounded-2xl border border-border bg-card px-3.5 py-2.5 text-center shadow-sm">
-            <Flame className="mx-auto size-4 text-orange-500" strokeWidth={2} />
-            <p className="mt-0.5 text-xl font-semibold tabular-nums tracking-tight">
-              {streak.count}
-            </p>
-            <p className="font-mono text-[10px] text-muted-foreground">
-              day streak
-            </p>
-          </div>
-        ) : null}
-      </header>
-
-      {featured ? (
-        <FeaturedDeck
-          deck={featured}
-          totalCards={cardCount}
-          streak={streak.count}
-        />
-      ) : null}
-
-      <div>
-        <h2 className="mb-3 text-[11px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-          Subjects
-        </h2>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {subjects.map((item) => {
-            const SubjectIcon = subjectIcons[item.courseSlug] ?? BookOpen;
-            const isActive = item.courseSlug === subject.courseSlug;
-            const live = item.units.some((u) => u.ready);
-            return (
-              <button
-                key={item.courseSlug}
-                type="button"
-                onClick={() => {
-                  setActiveCourse(item.courseSlug);
-                  posthog.capture("flashcard_subject_selected", {
-                    course_slug: item.courseSlug,
-                  });
-                }}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[12px] transition-all duration-200",
-                  isActive
-                    ? "border-foreground bg-foreground text-background shadow-sm"
-                    : "border-border bg-card text-muted-foreground hover:border-foreground/20 hover:text-foreground"
-                )}
-              >
-                <SubjectIcon className="size-3.5" strokeWidth={1.75} />
-                <span className="font-medium">{item.courseName}</span>
-                {live ? (
-                  <span
-                    className={cn(
-                      "flash-live-dot size-1.5 rounded-full",
-                      isActive ? "bg-background/70" : "bg-emerald-500"
-                    )}
-                  />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <section>
-        <div className="mb-4 flex items-center gap-3">
-          <div
-            className={cn(
-              "flex size-10 items-center justify-center rounded-2xl border border-border/50",
-              theme.iconBg
-            )}
-          >
-            <Icon className={cn("size-4", theme.iconColor)} strokeWidth={1.75} />
-          </div>
-          <div>
-            <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
-              {subject.courseName}
-            </h3>
-            <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-              {subject.units.filter((u) => u.ready).length} live ·{" "}
-              {subject.units.length} units
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {subject.units.map((deck, index) => (
-            <UnitDeckCard key={deck.unitSlug} deck={deck} index={index} />
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function FeaturedDeck({
-  deck,
-  totalCards,
-  streak,
-}: {
-  deck: FlashcardDeck;
-  totalCards: number;
-  streak: number;
-}) {
-  const a = deck.cards.filter((c) => c.priority === "A").length;
-  const cram = deck.minimumExamSet?.length ?? a;
-
-  return (
-    <Link
-      href={flashcardDeckHref(deck)}
-      onClick={() =>
-        posthog.capture("flashcard_featured_clicked", {
-          course_slug: deck.courseSlug,
-          unit_slug: deck.unitSlug,
-        })
-      }
-      className="flash-featured group relative block overflow-hidden rounded-[1.75rem] bg-[oklch(0.88_0.14_85)] p-6 text-zinc-900 transition-transform active:scale-[0.995] sm:p-8 dark:bg-[oklch(0.82_0.14_85)]"
-    >
-      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-lg space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900/10 px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide uppercase">
-              <span className="flash-live-dot size-1.5 rounded-full bg-emerald-600" />
-              Live
-            </span>
-            <span className="font-mono text-[11px] opacity-70">
-              {deck.unitLabel} · {deck.cards.length} Qs · {cram} cram
-            </span>
-            {streak > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-900/10 px-2 py-1 font-mono text-[11px] font-semibold">
-                <Flame className="size-3" strokeWidth={2} />
-                {streak}
-              </span>
-            ) : null}
-          </div>
-          <h2 className="text-[26px] font-semibold tracking-tight sm:text-[32px]">
-            {deck.courseName}
-          </h2>
-          <p className="max-w-md text-[14px] leading-relaxed opacity-75">
-            Think → flip → Forgot / Know it. Built for exam retrieval, not
-            re-reading notes.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-white/70 px-3.5 py-2.5 backdrop-blur-sm">
-            <p className="font-mono text-[10px] uppercase opacity-60">Library</p>
-            <p className="text-lg font-semibold tabular-nums">{totalCards}</p>
-          </div>
-          <span className="inline-flex h-12 items-center gap-2 rounded-full bg-zinc-900 px-5 text-[13px] font-semibold text-[oklch(0.88_0.14_85)] transition-transform group-hover:scale-[1.02]">
-            <Play className="size-3.5" strokeWidth={2} />
-            Open deck
-            <ArrowUpRight className="size-3.5 opacity-70" strokeWidth={2} />
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function UnitDeckCard({
-  deck,
-  index,
-}: {
-  deck: FlashcardDeck;
-  index: number;
-}) {
-  const ready = deck.ready && deck.cards.length > 0;
-  const a = deck.cards.filter((c) => c.priority === "A").length;
-  const b = deck.cards.filter((c) => c.priority === "B").length;
-  const c = deck.cards.filter((c) => c.priority === "C").length;
-  const mixTotal = a + b + c || 1;
-
-  const inner = (
-    <>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase">
-            {deck.unitLabel}
-          </p>
-          <h4 className="text-[14px] font-semibold leading-snug tracking-tight text-foreground">
-            {ready ? deck.title : `${deck.unitLabel} — coming soon`}
-          </h4>
-        </div>
-        {ready ? (
-          <span className="inline-flex size-9 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:scale-105">
-            <Play className="size-3.5" strokeWidth={2} />
+          <span className="inline-flex items-center gap-1.5 font-mono text-[15px] font-bold tabular-nums text-orange-500">
+            <Flame className="size-5 fill-orange-500/20" strokeWidth={2.25} />
+            {streak.count}
           </span>
         ) : (
-          <Lock
-            className="size-3.5 shrink-0 text-muted-foreground"
-            strokeWidth={1.75}
-          />
+          <span className="inline-flex items-center gap-1.5 font-mono text-[15px] font-bold tabular-nums text-muted-foreground/40">
+            <Flame className="size-5" strokeWidth={2} />
+            0
+          </span>
         )}
       </div>
 
-      {ready ? (
-        <>
-          <div className="mb-3 flex h-1.5 overflow-hidden rounded-full bg-muted">
-            <div
-              className="bg-foreground"
-              style={{ width: `${(a / mixTotal) * 100}%` }}
-            />
-            <div
-              className="bg-foreground/40"
-              style={{ width: `${(b / mixTotal) * 100}%` }}
-            />
-            <div
-              className="bg-foreground/15"
-              style={{ width: `${(c / mixTotal) * 100}%` }}
-            />
-          </div>
-          <div className="mt-auto flex items-center justify-between gap-2">
-            <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-              {deck.cards.length} Qs
-              {deck.minimumExamSet?.length
-                ? ` · ${deck.minimumExamSet.length} cram`
-                : ""}
+      {/* One primary Continue */}
+      {current ? (
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div>
+            <p className="text-[12px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+              {current.unitLabel}
             </p>
-            <span className="text-[12px] font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
-              Study →
-            </span>
+            <h2
+              className="mt-1.5 text-[28px] leading-none tracking-tight text-foreground"
+              style={{
+                fontFamily: "var(--font-flash-serif), ui-serif, Georgia, serif",
+              }}
+            >
+              {subject.courseName}
+            </h2>
           </div>
-        </>
+          <Link
+            href={flashcardDeckHref(current)}
+            onClick={() =>
+              posthog.capture("flashcard_featured_clicked", {
+                course_slug: current.courseSlug,
+                unit_slug: current.unitSlug,
+              })
+            }
+            className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[var(--flash-yellow)] text-[16px] font-bold tracking-wide text-[#111] shadow-[0_6px_0_0_#c4b020] transition-transform active:translate-y-1 active:shadow-none"
+          >
+            <Play className="size-4 fill-current" strokeWidth={2} />
+            Start
+            <span className="font-mono text-[13px] font-semibold opacity-55">
+              {startCount}
+            </span>
+          </Link>
+        </div>
       ) : (
-        <p className="mt-auto font-mono text-[11px] text-muted-foreground">
-          Slot reserved
-        </p>
+        <div className="rounded-2xl bg-muted/40 px-4 py-8 text-center text-[13px] text-muted-foreground">
+          Nothing live in this subject yet.
+        </div>
       )}
-    </>
-  );
 
-  if (!ready) {
-    return (
-      <div
-        className="flash-unit-in flex h-full min-h-35 flex-col rounded-2xl border border-dashed border-border bg-muted/15 p-4 opacity-70"
-        style={{ animationDelay: `${index * 45}ms` }}
-      >
-        {inner}
+      {/* Subject strip */}
+      <div className="flex justify-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+        {subjects.map((item) => {
+          const SubjectIcon = subjectIcons[item.courseSlug] ?? BookOpen;
+          const isActive = item.courseSlug === subject.courseSlug;
+          const live = item.units.some((u) => u.ready && u.cards.length > 0);
+          return (
+            <button
+              key={item.courseSlug}
+              type="button"
+              onClick={() => {
+                setActiveCourse(item.courseSlug);
+                posthog.capture("flashcard_subject_selected", {
+                  course_slug: item.courseSlug,
+                });
+              }}
+              className={cn(
+                "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold transition-colors",
+                isActive
+                  ? "bg-foreground text-background"
+                  : live
+                    ? "bg-muted text-foreground hover:bg-muted/80"
+                    : "bg-transparent text-muted-foreground/50"
+              )}
+            >
+              <SubjectIcon className="size-3.5" strokeWidth={2} />
+              {subjectShort[item.courseSlug] ?? item.courseName}
+            </button>
+          );
+        })}
       </div>
-    );
-  }
 
-  return (
-    <Link
-      href={flashcardDeckHref(deck)}
-      onClick={() =>
-        posthog.capture("flashcard_deck_clicked", {
-          course_slug: deck.courseSlug,
-          unit_slug: deck.unitSlug,
-        })
-      }
-      className={cn(
-        "flash-unit-in group flex h-full min-h-35 flex-col rounded-2xl border border-border bg-card p-4",
-        "transition-all duration-200 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-md",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      )}
-      style={{ animationDelay: `${index * 45}ms` }}
-    >
-      {inner}
-    </Link>
+      {/* Learning path */}
+      <ol className="relative mx-auto flex w-full max-w-[220px] flex-col items-center">
+        {subject.units.map((deck, index) => {
+          const ready = deck.ready && deck.cards.length > 0;
+          const isCurrent = current?.unitSlug === deck.unitSlug;
+          const unitNum = index + 1;
+
+          return (
+            <li
+              key={deck.unitSlug}
+              className="relative flex w-full flex-col items-center"
+            >
+              {index > 0 ? (
+                <div
+                  className={cn(
+                    "h-7 w-1.5 rounded-full",
+                    ready ||
+                      subject.units
+                        .slice(0, index)
+                        .some((u) => u.ready && u.cards.length > 0)
+                      ? "bg-foreground/20"
+                      : "bg-border"
+                  )}
+                  aria-hidden
+                />
+              ) : null}
+
+              {ready ? (
+                <Link
+                  href={flashcardDeckHref(deck)}
+                  onClick={() =>
+                    posthog.capture("flashcard_deck_clicked", {
+                      course_slug: deck.courseSlug,
+                      unit_slug: deck.unitSlug,
+                    })
+                  }
+                  className={cn(
+                    "flash-unit-in group relative flex size-[4.25rem] items-center justify-center rounded-full transition-transform active:scale-95",
+                    isCurrent
+                      ? "bg-[var(--flash-yellow)] text-[#111] shadow-[0_5px_0_0_#c4b020]"
+                      : "bg-card text-foreground ring-[3px] ring-border hover:ring-foreground/25"
+                  )}
+                  style={{ animationDelay: `${index * 40}ms` }}
+                  aria-label={`${deck.unitLabel}${isCurrent ? ", current" : ""}`}
+                >
+                  {isCurrent ? (
+                    <Play className="size-6 fill-current" strokeWidth={2} />
+                  ) : (
+                    <span className="font-mono text-[18px] font-bold tabular-nums">
+                      {unitNum}
+                    </span>
+                  )}
+                </Link>
+              ) : (
+                <div
+                  className="flash-unit-in flex size-[4.25rem] items-center justify-center rounded-full bg-muted/60 text-muted-foreground/50"
+                  style={{ animationDelay: `${index * 40}ms` }}
+                  aria-label={`${deck.unitLabel}, locked`}
+                >
+                  <Lock className="size-4" strokeWidth={2} />
+                </div>
+              )}
+
+              <p
+                className={cn(
+                  "mt-2 max-w-[9rem] text-center text-[11px] font-medium leading-tight",
+                  ready ? "text-foreground" : "text-muted-foreground/50"
+                )}
+              >
+                {deck.unitLabel}
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
