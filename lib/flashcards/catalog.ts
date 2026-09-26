@@ -1,4 +1,7 @@
 import { quantumPhysicsUnit3 } from "./decks/quantum-physics-unit-3";
+import { quantumPhysicsUnit4 } from "./decks/quantum-physics-unit-4";
+import { artificialIntelligenceUnit1 } from "./decks/ai-unit-1";
+import { appliedCalculusUnit1 } from "./decks/applied-calculus-unit-1";
 import type { FlashcardDeck, FlashcardSubject } from "./types";
 
 function placeholderDeck(
@@ -34,12 +37,7 @@ const quantumPhysicsUnits: FlashcardDeck[] = [
     "Semiconductor Physics Basics"
   ),
   quantumPhysicsUnit3,
-  placeholderDeck(
-    "quantum-physics",
-    "Quantum Physics",
-    4,
-    "Band Theory & Carrier Statistics"
-  ),
+  quantumPhysicsUnit4,
   placeholderDeck(
     "quantum-physics",
     "Quantum Physics",
@@ -48,39 +46,45 @@ const quantumPhysicsUnits: FlashcardDeck[] = [
   ),
 ];
 
-const appliedCalculusUnits: FlashcardDeck[] = [1, 2, 3, 4, 5].map((n) =>
-  placeholderDeck(
-    "applied-calculus",
-    "Applied Calculus",
-    n,
-    `Applied Calculus — Unit ${n}`
-  )
-);
+const appliedCalculusUnits: FlashcardDeck[] = [
+  appliedCalculusUnit1,
+  ...[2, 3, 4, 5].map((n) =>
+    placeholderDeck(
+      "applied-calculus",
+      "Applied Calculus",
+      n,
+      `Applied Calculus: Unit ${n}`
+    )
+  ),
+];
 
 const cProgrammingUnits: FlashcardDeck[] = [1, 2, 3, 4, 5].map((n) =>
   placeholderDeck(
     "c-programming",
     "C Programming",
     n,
-    `C Programming — Unit ${n}`
+    `C Programming: Unit ${n}`
   )
 );
 
-const aiUnits: FlashcardDeck[] = [1, 2, 3, 4, 5].map((n) =>
-  placeholderDeck(
-    "artificial-intelligence",
-    "Artificial Intelligence",
-    n,
-    `Artificial Intelligence — Unit ${n}`
-  )
-);
+const aiUnits: FlashcardDeck[] = [
+  artificialIntelligenceUnit1,
+  ...[2, 3, 4, 5].map((n) =>
+    placeholderDeck(
+      "artificial-intelligence",
+      "Artificial Intelligence",
+      n,
+      `Artificial Intelligence: Unit ${n}`
+    )
+  ),
+];
 
 const designThinkingUnits: FlashcardDeck[] = [1, 2, 3, 4].map((n) =>
   placeholderDeck(
     "comupational-design-and-thinking",
     "Comupational Design and Thinking",
     n,
-    `Design & Thinking — Unit ${n}`
+    `Design & Thinking: Unit ${n}`
   )
 );
 
@@ -89,12 +93,12 @@ const entrepreneurialUnits: FlashcardDeck[] = [1, 2, 3, 4].map((n) =>
     "entrepreneurial-mindset",
     "Entrepreneurial Mindset",
     n,
-    `Entrepreneurial Mindset — Unit ${n}`
+    `Entrepreneurial Mindset: Unit ${n}`
   )
 );
 
 const linuxLabUnits: FlashcardDeck[] = [1, 2, 3].map((n) =>
-  placeholderDeck("linux-lab", "Linux Lab", n, `Linux Lab — Module ${n}`)
+  placeholderDeck("linux-lab", "Linux Lab", n, `Linux Lab: Module ${n}`)
 );
 
 /** All subjects with per-unit decks. Ready decks are studyable. */

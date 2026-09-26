@@ -43,7 +43,7 @@ export default async function CoursePage({
     pyqCount > 0 ? `${pyqCount} PYQ` : null,
   ].filter(Boolean);
 
-  const readyDeck = getReadyFlashcardDecks().find(
+  const readyDecks = getReadyFlashcardDecks().filter(
     (deck) => deck.courseSlug === course.slug
   );
 
@@ -63,31 +63,33 @@ export default async function CoursePage({
         labs={course.labs}
         pyq={course.pyq}
       />
-      {readyDeck ? (
-        <div className="mt-10 border-t border-border pt-6">
-          <Link
-            href={`/flashcards/${readyDeck.courseSlug}/${readyDeck.unitSlug}`}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 transition-colors hover:border-foreground/20 hover:bg-muted/40"
-          >
-            <span className="flex min-w-0 items-center gap-2.5">
-              <Layers
-                className="size-4 shrink-0 text-muted-foreground"
-                strokeWidth={1.75}
-              />
-              <span className="min-w-0">
-                <span className="block text-[14px] font-medium text-foreground">
-                  Flashcards
-                </span>
-                <span className="block truncate text-[12px] text-muted-foreground">
-                  {readyDeck.unitLabel} ·{" "}
-                  {readyDeck.cards.length} cards
+      {readyDecks.length > 0 ? (
+        <div className="mt-10 space-y-2 border-t border-border pt-6">
+          {readyDecks.map((deck) => (
+            <Link
+              key={`${deck.courseSlug}-${deck.unitSlug}`}
+              href={`/flashcards/${deck.courseSlug}/${deck.unitSlug}`}
+              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 transition-colors hover:border-foreground/20 hover:bg-muted/40"
+            >
+              <span className="flex min-w-0 items-center gap-2.5">
+                <Layers
+                  className="size-4 shrink-0 text-muted-foreground"
+                  strokeWidth={1.75}
+                />
+                <span className="min-w-0">
+                  <span className="block text-[14px] font-medium text-foreground">
+                    Flashcards
+                  </span>
+                  <span className="block truncate text-[12px] text-muted-foreground">
+                    {deck.unitLabel} · {deck.cards.length} cards
+                  </span>
                 </span>
               </span>
-            </span>
-            <span className="shrink-0 text-[12px] font-semibold text-muted-foreground">
-              Study →
-            </span>
-          </Link>
+              <span className="shrink-0 text-[12px] font-semibold text-muted-foreground">
+                Study →
+              </span>
+            </Link>
+          ))}
         </div>
       ) : null}
     </>
